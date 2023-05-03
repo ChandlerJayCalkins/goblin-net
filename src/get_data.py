@@ -33,6 +33,10 @@ def refresh_data(log_ids):
 	dates = np.empty((0, 3), int)
 	weekdays = np.empty((0, 1), str)
 
+	# arrays of output data to collect from each log
+	team_scores = np.empty((0, 2), int)
+	match_stats = np.empty((0, 61), int)
+
 	# collect data from each log
 	for log_id in log_ids:
 		# Read json data of log
@@ -133,7 +137,7 @@ def refresh_data(log_ids):
 					red_med.append(sid3)
 				# if the class isn't a meta sixes class
 				else:
-					print(f"Primary class if non-sixes meta for player {sid3} in log {log_id}")
+					print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
 					quit()
 			# if the player was on the blu team, put them in the correct list for the class they played
 			elif player[key_team] == "Blue":
@@ -147,7 +151,7 @@ def refresh_data(log_ids):
 					blu_med.append(sid3)
 				# if the class isn't a meta sixes class
 				else:
-					print(f"Primary class if non-sixes meta for player {sid3} in log {log_id}")
+					print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
 					quit()
 			# if the team wasn't recognized
 			else:
@@ -210,6 +214,8 @@ def refresh_data(log_ids):
 		maps = np.append(maps, map_name)
 		dates = np.append(dates, match_date)
 		weekdays = np.append(weekdays, match_weekday)
+
+		# Collect output data
 	
 	print(input_players)
 	print(maps)
