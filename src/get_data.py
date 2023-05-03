@@ -27,6 +27,14 @@ import pytz
 import numpy as np
 
 def refresh_data(log_ids):
+	players, maps, dates, weekdays = refresh_inputs(log_ids)
+	
+	print(players)
+	print(maps)
+	print(dates)
+	print(weekdays)
+
+def refresh_inputs(log_ids):
 	input_players = np.empty((0, 12), str)
 	maps = np.empty((0, 1), str)
 	dates = np.empty((0, 3), int)
@@ -197,10 +205,5 @@ def refresh_data(log_ids):
 		maps = np.append(maps, map_name)
 		dates = np.append(dates, match_date)
 		weekdays = np.append(weekdays, match_weekday)
-
-		# Collect output data
 	
-	print(input_players)
-	print(maps)
-	print(dates)
-	print(weekdays)
+	return input_players, maps, dates, weekdays
