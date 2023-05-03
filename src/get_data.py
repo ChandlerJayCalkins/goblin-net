@@ -34,7 +34,7 @@ def refresh_data(log_ids):
 	weekdays = np.empty((0, 1), str)
 
 	# arrays of output data to collect from each log
-	team_scores = np.empty((0, 2), int)
+	scores = np.empty((0, 2), int)
 	match_stats = np.empty((0, 61), int)
 
 	# collect data from each log
@@ -48,7 +48,6 @@ def refresh_data(log_ids):
 		log_url_p2 = "json/"
 		# concatenate to form json url and original log page url
 		log_json_url = log_url_p1 + log_url_p2 + log_id_str
-		log_url = log_url_p1 + log_id_str
 		# create context that doesn't require ssl certificate verification when requesting from website
 		context = ssl._create_unverified_context()
 		# request data from json file of log
@@ -62,6 +61,24 @@ def refresh_data(log_ids):
 		if "version" not in data:
 			print(f"Log version missing from log {log_id}")
 			quit()
+		# make sure there team data
+		if "teams" not in data:
+			print(f"Team data missing from log {log_id}")
+			quit()
+		# make sure red and blu teams aren't missing
+		if "Red" not in data["teams"]:
+			print(f"Red team missing from log {log_id}")
+			quit()
+		if "Blue" not in data["teams"]:
+			print(f"Blu team missing from log {log_id}")
+			quit()
+		# make sure scores aren't missing from red and blu teams
+		if "score" not in data["teams"]["Red"]:
+			print(f"Score missing from red team in log {log_id}")
+			quit()
+		if "score" not in data["teams"]["Blue"]:
+			print(f"Score missing from blu team in log {log_id}")
+			quit()
 		# make sure there is player data
 		if "players" not in data:
 			print(f"Player data missing from log {log_id}")
@@ -74,6 +91,10 @@ def refresh_data(log_ids):
 		if "info" not in data:
 			print(f"Info field missing from log {log_id}")
 			quit()
+		# make sure there is match length data
+		if "total_length" not in data["info"]:
+			print(f"Match length missing from log {log_id}")
+			quit()
 		# make sure the map was recorded
 		if "map" not in data["info"]:
 			print(f"Map missing from log {log_id}")
@@ -83,12 +104,13 @@ def refresh_data(log_ids):
 			print(f"Date missing from log {log_id}")
 			quit()
 
-		# Collect input data
-
 		# make sure log version is correct
 		if data["version"] != 3:
 			print(f"Log version is not 3 in log {log_id}")
 			quit()
+
+		# collect the scores of each team
+		score = np.array([data["teams"]["Red"]["score"], data["teams"]["Blue"]["score"]])
 
 		# get player data
 		player_data = data["players"]
@@ -209,7 +231,9 @@ def refresh_data(log_ids):
 		match_date = np.array([match_datetime.year, match_datetime.month, match_datetime.day])
 		match_weekday = np.array(match_datetime.strftime("%A"), ndmin=1)
 
-		# add all of the inputs to the 
+		# add all of the data collected from this match to the collective data arrays
+		scores = np.append(scores, score)
+
 		input_players = np.append(input_players, player_sid3s)
 		maps = np.append(maps, map_name)
 		dates = np.append(dates, match_date)
@@ -221,3 +245,4 @@ def refresh_data(log_ids):
 	print(maps)
 	print(dates)
 	print(weekdays)
+	print(scores)
