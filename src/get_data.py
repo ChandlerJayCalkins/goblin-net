@@ -27,18 +27,13 @@ import pytz
 import numpy as np
 
 def refresh_data(log_ids):
-	players, maps, dates, weekdays = refresh_inputs(log_ids)
-	
-	print(players)
-	print(maps)
-	print(dates)
-	print(weekdays)
-
-def refresh_inputs(log_ids):
+	# arrays of input data to collect from each log
 	input_players = np.empty((0, 12), str)
 	maps = np.empty((0, 1), str)
 	dates = np.empty((0, 3), int)
 	weekdays = np.empty((0, 1), str)
+
+	# collect data from each log
 	for log_id in log_ids:
 		# Read json data of log
 
@@ -113,16 +108,20 @@ def refresh_inputs(log_ids):
 			key_team = "team"
 			key_stats = "class_stats"
 			key_type = "type"
+			# make sure the team value exists for this player
 			if key_team not in player:
 				print(f"Team info missing for player {sid3} in log {log_id}")
 				quit()
+			# make sure the class_stats value exists for this player
 			if key_stats not in player or len(player[key_stats]) < 1:
 				print(f"Class stats missing for player {sid3} in log {log_id}")
 				quit()
+			# make sure the type of class the player played exists for this player
 			if key_type not in player[key_stats][0]:
 				print(f"Class type missing for player {sid3} in log {log_id}")
 				quit()
 			
+			# if the player was on the red team, put them in the correct list for the class they played
 			if player[key_team] == "Red":
 				if player[key_stats][0][key_type] == "scout":
 					red_scouts.append(sid3)
@@ -132,9 +131,11 @@ def refresh_inputs(log_ids):
 					red_demo.append(sid3)
 				elif player[key_stats][0][key_type] == "medic":
 					red_med.append(sid3)
+				# if the class isn't a meta sixes class
 				else:
 					print(f"Primary class if non-sixes meta for player {sid3} in log {log_id}")
 					quit()
+			# if the player was on the blu team, put them in the correct list for the class they played
 			elif player[key_team] == "Blue":
 				if player[key_stats][0][key_type] == "scout":
 					blu_scouts.append(sid3)
@@ -144,13 +145,16 @@ def refresh_inputs(log_ids):
 					blu_demo.append(sid3)
 				elif player[key_stats][0][key_type] == "medic":
 					blu_med.append(sid3)
+				# if the class isn't a meta sixes class
 				else:
 					print(f"Primary class if non-sixes meta for player {sid3} in log {log_id}")
 					quit()
+			# if the team wasn't recognized
 			else:
 				print(f"Unknown team for player {sid3} in log {log_id}")
 				quit()
 
+		# make sure there are the correct amount of players for each class on each team
 		if len(red_scouts) != 2:
 			print(f"Not 2 scouts on red team in log {log_id}")
 			quit()
@@ -201,9 +205,13 @@ def refresh_inputs(log_ids):
 		match_date = np.array([match_datetime.year, match_datetime.month, match_datetime.day])
 		match_weekday = np.array(match_datetime.strftime("%A"), ndmin=1)
 
+		# add all of the inputs to the 
 		input_players = np.append(input_players, player_sid3s)
 		maps = np.append(maps, map_name)
 		dates = np.append(dates, match_date)
 		weekdays = np.append(weekdays, match_weekday)
 	
-	return input_players, maps, dates, weekdays
+	print(input_players)
+	print(maps)
+	print(dates)
+	print(weekdays)
