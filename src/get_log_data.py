@@ -3,7 +3,7 @@
 #
 # Goblin Net: Neural Networks that Predict the Outcome of competitive Team Fortress 2 Matches
 #
-# get_data
+# get_log_data
 #
 # Module for getting data from logs.tf logs and preparing it to be fed into the goblin
 #
@@ -30,7 +30,18 @@ import numpy as np
 # used for outputting data to a csv file
 import pandas as pd
 
-def refresh_data(log_ids):
+data_path = "data"
+
+player_data_file = "players.csv"
+maps_data_file = "maps.csv"
+dates_data_file = "dates.csv"
+weekdays_data_file = "weekdays.csv"
+
+scores_data_file = "scores.csv"
+stats_data_file = "stats.csv"
+
+# collects data from log files of list of log ids and puts the data in csv files in the data folder
+def refresh_log_data(log_ids):
 	# arrays of input data to collect from each log
 	players = np.empty((0, 12), str)
 	maps = np.empty((0, 1), str)
@@ -401,10 +412,11 @@ def refresh_data(log_ids):
 		dates = np.vstack((dates, match_date))
 		weekdays = np.vstack((weekdays, match_weekday))
 
-	data_path = "data"
+	# if there isn't already a folder for the data, create one
 	if not os.path.isdir(data_path):
 		os.mkdir(data_path)
 	
+	# create data frames for each array
 	df_players = pd.DataFrame(players)
 	df_maps = pd.DataFrame(maps)
 	df_dates = pd.DataFrame(dates)
@@ -413,15 +425,16 @@ def refresh_data(log_ids):
 	df_scores = pd.DataFrame(scores)
 	df_stats = pd.DataFrame(stats)
 
-	df_players.to_csv(f"{data_path}/players.csv", header=[\
+	# store the data into csv files
+	df_players.to_csv(f"{data_path}/{player_data_file}", header=[\
 		"Red Scout 1", "Red Scout 2", "Red Soldier 1", "Red Soldier 2", "Red Demo", "Red Medic",\
 		"Blu Scout 1", "Blu Scout 2", "Blu Soldier 1", "Blu Soldier 2", "Blu Demo", "Blu Medic"])
-	df_maps.to_csv(f"{data_path}/maps.csv", header=["Map"])
-	df_dates.to_csv(f"{data_path}/dates.csv", header=["Year", "Month", "Day"])
-	df_weekdays.to_csv(f"{data_path}/weekdays.csv", header=["Weekday"])
+	df_maps.to_csv(f"{data_path}/{maps_data_file}", header=["Map"])
+	df_dates.to_csv(f"{data_path}/{dates_data_file}", header=["Year", "Month", "Day"])
+	df_weekdays.to_csv(f"{data_path}/{weekdays_data_file}", header=["Weekday"])
 
-	df_scores.to_csv(f"{data_path}/scores.csv", header=["Red Score", "Blu Score"])
-	df_stats.to_csv(f"{data_path}/stats.csv", header=["Match Length",\
+	df_scores.to_csv(f"{data_path}/{scores_data_file}", header=["Red Score", "Blu Score"])
+	df_stats.to_csv(f"{data_path}/{stats_data_file}", header=["Match Length",\
 		"Red Scout 1 Kills", "Red Scout 1 Assists", "Red Scout 1 Deaths",\
 		"Red Scout 1 Damage", "Red Scout 1 Damage Taken",\
 		"Red Scout 2 Kills", "Red Scout 2 Assists", "Red Scout 2 Deaths",\
@@ -448,3 +461,22 @@ def refresh_data(log_ids):
 		"Blu Medic Kills", "Blu Medic Assists", "Blu Medic Deaths",\
 		"Blu Medic Damage", "Blu Medic Damage Taken",\
 		"Blu Medic Heals", "Blu Medic Ubers", "Blu Medic Drops"])
+
+# gets log data from csv files and prepare it to be fed into the goblin
+def get_log_data():
+	# if there isn't a folder for the data
+	if not os.path.isdir(data_path):
+		raise FileNotFoundError("Missing data folder.")
+	# if any of the data files are missing
+	if not os.path.isfile(f"{data_path}/{player_data_file}"):
+		raise FileNotFoundError("Missing player data file")
+	if not os.path.isfile(f"{data_path}/{maps_data_file}"):
+		raise FileNotFoundError("Missing map data file")
+	if not os.path.isfile(f"{data_path}/{dates_data_file}"):
+		raise FileNotFoundError("Missing date data file")
+	if not os.path.isfile(f"{data_path}/{weekdays_data_file}"):
+		raise FileNotFoundError("Missing weekday data file")
+	if not os.path.isfile(f"{data_path}/{scores_data_file}"):
+		raise FileNotFoundError("Missing score data file")
+	if not os.path.isfile(f"{data_path}/{stats_data_file}"):
+		raise FileNotFoundError("Missing stats data file")
