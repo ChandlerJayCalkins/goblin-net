@@ -21,33 +21,35 @@ import ssl
 import json
 # used for handling date data from match logs
 from datetime import datetime
+# used for making sure the data directory exists
+import os
 # used for changing the time zone of the retrieved match times
 import pytz
 # used for putting data into arrays to be fed into the goblin
 import numpy as np
+# used for outputting data to a csv file
+import pandas as pd
 
 def refresh_data(log_ids):
 	# arrays of input data to collect from each log
-	input_players = np.empty((0, 12), str)
+	players = np.empty((0, 12), str)
 	maps = np.empty((0, 1), str)
 	dates = np.empty((0, 3), int)
 	weekdays = np.empty((0, 1), str)
 
 	# arrays of output data to collect from each log
 	scores = np.empty((0, 2), int)
-	stats = np.empty((0, 61), int)
+	stats = np.empty((0, 67), int)
 
 	# collect data from each log
 	for log_id in log_ids:
 		# Read json data of log
 
-		# get string of log id
-		log_id_str = str(log_id)
 		# get parts of necessary urls
 		log_url_p1 = "https://logs.tf/"
 		log_url_p2 = "json/"
 		# concatenate to form json url and original log page url
-		log_json_url = log_url_p1 + log_url_p2 + log_id_str
+		log_json_url = log_url_p1 + log_url_p2 + log_id
 		# create context that doesn't require ssl certificate verification when requesting from website
 		context = ssl._create_unverified_context()
 		# request data from json file of log
@@ -248,6 +250,9 @@ def refresh_data(log_ids):
 					red_med_stats.append(player[key_deaths])
 					red_med_stats.append(player[key_dmg])
 					red_med_stats.append(player[key_dt])
+					red_med_stats.append(player[key_heals])
+					red_med_stats.append(player[key_ubers])
+					red_med_stats.append(player[key_drops])
 				# if the class isn't a meta sixes class
 				else:
 					print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
@@ -305,6 +310,9 @@ def refresh_data(log_ids):
 					blu_med_stats.append(player[key_deaths])
 					blu_med_stats.append(player[key_dmg])
 					blu_med_stats.append(player[key_dt])
+					blu_med_stats.append(player[key_heals])
+					blu_med_stats.append(player[key_ubers])
+					blu_med_stats.append(player[key_drops])
 				# if the class isn't a meta sixes class
 				else:
 					print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
@@ -347,9 +355,11 @@ def refresh_data(log_ids):
 			continue
 
 		# turn steam id 3s into an array
-		player_sid3s = np.array(red_scouts + red_soldiers + red_demo + red_med + blu_scouts + blu_soldiers + blu_demo + blu_med)
+		player_sid3s = np.array(red_scouts + red_soldiers + red_demo + red_med +\
+			blu_scouts + blu_soldiers + blu_demo + blu_med)
 		# turn stats into an array
-		match_stats = np.array(match_length + red_scouts_stats + red_soldiers_stats + red_demo_stats + red_med_stats + blu_scouts_stats + blu_soldiers_stats + blu_demo_stats + blu_med_stats)
+		match_stats = np.array(match_length + red_scouts_stats + red_soldiers_stats + red_demo_stats + red_med_stats +\
+			blu_scouts_stats + blu_soldiers_stats + blu_demo_stats + blu_med_stats)
 
 		# get all player names
 		player_names = data["names"]
@@ -383,19 +393,58 @@ def refresh_data(log_ids):
 		match_weekday = np.array(match_datetime.strftime("%A"), ndmin=1)
 
 		# add all of the data collected from this match to the collective data arrays
-		scores = np.append(scores, score)
-		stats = np.append(stats, match_stats)
+		scores = np.vstack((scores, score))
+		stats = np.vstack((stats, match_stats))
 
-		input_players = np.append(input_players, player_sid3s)
-		maps = np.append(maps, map_name)
-		dates = np.append(dates, match_date)
-		weekdays = np.append(weekdays, match_weekday)
+		players = np.vstack((players, player_sid3s))
+		maps = np.vstack((maps, map_name))
+		dates = np.vstack((dates, match_date))
+		weekdays = np.vstack((weekdays, match_weekday))
+
+	data_path = "data"
+	if not os.path.isdir(data_path):
+		os.mkdir(data_path)
 	
-	print("Inputs:")
-	print(input_players)
-	print(maps)
-	print(dates)
-	print(weekdays)
-	print("Outputs:")
-	print(scores)
-	print(stats)
+	df_players = pd.DataFrame(players)
+	df_maps = pd.DataFrame(maps)
+	df_dates = pd.DataFrame(dates)
+	df_weekdays = pd.DataFrame(weekdays)
+
+	df_scores = pd.DataFrame(scores)
+	df_stats = pd.DataFrame(stats)
+
+	df_players.to_csv(f"{data_path}/players.csv", header=[\
+		"Red Scout 1", "Red Scout 2", "Red Soldier 1", "Red Soldier 2", "Red Demo", "Red Medic",\
+		"Blu Scout 1", "Blu Scout 2", "Blu Soldier 1", "Blu Soldier 2", "Blu Demo", "Blu Medic"])
+	df_maps.to_csv(f"{data_path}/maps.csv", header=["Map"])
+	df_dates.to_csv(f"{data_path}/dates.csv", header=["Year", "Month", "Day"])
+	df_weekdays.to_csv(f"{data_path}/weekdays.csv", header=["Weekday"])
+
+	df_scores.to_csv(f"{data_path}/scores.csv", header=["Red Score", "Blu Score"])
+	df_stats.to_csv(f"{data_path}/stats.csv", header=["Match Length",\
+		"Red Scout 1 Kills", "Red Scout 1 Assists", "Red Scout 1 Deaths",\
+		"Red Scout 1 Damage", "Red Scout 1 Damage Taken",\
+		"Red Scout 2 Kills", "Red Scout 2 Assists", "Red Scout 2 Deaths",\
+		"Red Scout 2 Damage", "Red Scout 2 Damage Taken",\
+		"Red Soldier 1 Kills", "Red Soldier 1 Assists", "Red Soldier 1 Deaths",\
+		"Red Soldier 1 Damage", "Red Soldier 1 Damage Taken",\
+		"Red Soldier 2 Kills", "Red Soldier 2 Assists", "Red Soldier 2 Deaths",\
+		"Red Soldier 2 Damage", "Red Soldier 2 Damage Taken",\
+		"Red Demo Kills", "Red Demo Assists", "Red Demo Deaths",\
+		"Red Demo Damage", "Red Demo Damage Taken",\
+		"Red Medic Kills", "Red Medic Assists", "Red Medic Deaths",\
+		"Red Medic Damage", "Red Medic Damage Taken",\
+		"Red Medic Heals", "Red Medic Ubers", "Red Medic Drops",\
+		"Blu Scout 1 Kills", "Blu Scout 1 Assists", "Blu Scout 1 Deaths",\
+		"Blu Scout 1 Damage", "Blu Scout 1 Damage Taken",\
+		"Blu Scout 2 Kills", "Blu Scout 2 Assists", "Blu Scout 2 Deaths",\
+		"Blu Scout 2 Damage", "Blu Scout 2 Damage Taken",\
+		"Blu Soldier 1 Kills", "Blu Soldier 1 Assists", "Blu Soldier 1 Deaths",\
+		"Blu Soldier 1 Damage", "Blu Soldier 1 Damage Taken",\
+		"Blu Soldier 2 Kills", "Blu Soldier 2 Assists", "Blu Soldier 2 Deaths",\
+		"Blu Soldier 2 Damage", "Blu Soldier 2 Damage Taken",\
+		"Blu Demo Kills", "Blu Demo Assists", "Blu Demo Deaths",\
+		"Blu Demo Damage", "Blu Demo Damage Taken",\
+		"Blu Medic Kills", "Blu Medic Assists", "Blu Medic Deaths",\
+		"Blu Medic Damage", "Blu Medic Damage Taken",\
+		"Blu Medic Heals", "Blu Medic Ubers", "Blu Medic Drops"])
