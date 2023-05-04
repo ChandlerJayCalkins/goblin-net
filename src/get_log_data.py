@@ -13,7 +13,7 @@
 #
 ########################################################################################################################
 
-# for getting data from web pages
+# used for getting data from web pages
 from urllib.request import urlopen
 # used for getting around needing to verify logs.tf's ssl certificate to get data from the website
 import ssl
@@ -29,6 +29,8 @@ import pytz
 import numpy as np
 # used for outputting data to a csv file
 import pandas as pd
+# used for one hot encoding data
+from keras.utils import to_categorical
 
 data_path = "data"
 
@@ -481,10 +483,23 @@ def get_log_data():
 	if not os.path.isfile(f"{data_path}/{stats_data_file}"):
 		raise FileNotFoundError("Missing stats data file")
 	
-	players = pd.read_csv(f"{data_path}/{player_data_file}")
-	maps = pd.read_csv(f"{data_path}/{maps_data_file}")
-	dates = pd.read_csv(f"{data_path}/{dates_data_file}")
-	weekdays = pd.read_csv(f"{data_path}/{weekdays_data_file}")
+	# read data from csv files and turn it into arrays
+	players = np.delete(np.array(pd.read_csv(f"{data_path}/{player_data_file}")), 0, 1)
+	maps = np.delete(np.array(pd.read_csv(f"{data_path}/{maps_data_file}")), 0, 1)
+	dates = np.delete(np.array(pd.read_csv(f"{data_path}/{dates_data_file}")), 0, 1)
+	weekdays = np.delete(np.array(pd.read_csv(f"{data_path}/{weekdays_data_file}")), 0, 1)
 
-	scores = pd.read_csv(f"{data_path}/{scores_data_file}")
-	stats = pd.read_csv(f"{data_path}/{stats_data_file}")
+	scores = np.delete(np.array(pd.read_csv(f"{data_path}/{scores_data_file}")), 0, 1)
+	stats = np.delete(np.array(pd.read_csv(f"{data_path}/{stats_data_file}")), 0, 1)
+
+	# encode some of the data with one hot encoding
+	classes = np.unique(players)
+	players_onehot = np.searchsorted(classes, players)
+	players_onehot = to_categorical(players_onehot)
+	print(players_onehot)
+	print(players_onehot.shape)
+	players_onehot = players_onehot.reshape(players.shape[0], players_onehot.shape[1] * players_onehot.shape[2])
+	print(players_onehot)
+	print(players_onehot.shape)
+
+	# use np.hstack() to horizontally combine the right arrays together
