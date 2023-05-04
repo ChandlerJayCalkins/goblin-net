@@ -480,3 +480,11 @@ def get_log_data():
 		raise FileNotFoundError("Missing score data file")
 	if not os.path.isfile(f"{data_path}/{stats_data_file}"):
 		raise FileNotFoundError("Missing stats data file")
+	
+	players = pd.read_csv(f"{data_path}/{player_data_file}")
+	maps = pd.read_csv(f"{data_path}/{maps_data_file}")
+	dates = pd.read_csv(f"{data_path}/{dates_data_file}")
+	weekdays = pd.read_csv(f"{data_path}/{weekdays_data_file}")
+
+	scores = pd.read_csv(f"{data_path}/{scores_data_file}")
+	stats = pd.read_csv(f"{data_path}/{stats_data_file}")

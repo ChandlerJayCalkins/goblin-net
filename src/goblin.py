@@ -1,5 +1,5 @@
-import get_logs
-import get_log_data
+from get_logs import *
+from get_log_data import *
 
 log_ids = ["3389150", "3389174"]
-get_data.refresh_log_data(log_ids)
+refresh_log_data(log_ids)
