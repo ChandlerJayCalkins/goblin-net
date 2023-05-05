@@ -152,7 +152,7 @@ def refresh_log_data(log_ids):
 			continue
 		# get the gamemode from the substring that comes before the first underscore in the map name
 		gamemode = np.array([data["info"]["map"][:data["info"]["map"].index("_")]])
-		
+
 		# get map name
 		map_name = np.array(data["info"]["map"], ndmin=1)
 
@@ -532,6 +532,18 @@ def get_log_data():
 	players_onehot = to_categorical(players_onehot)
 	players_onehot = players_onehot.reshape(players.shape[0], players_onehot.shape[1] * players_onehot.shape[2])
 
+	# one hot encode gamemodes
+	classes = np.unique(gamemodes)
+	# make sure both koth and control points are encoded in
+	if "koth" not in classes:
+		classes = np.append(classes, "koth")
+	if "cp" not in classes:
+		classes = np.append(classes, "cp")
+	classes = np.reshape(classes, (classes.size, 1))
+	oe = OrdinalEncoder()
+	oe.fit(classes)
+	gamemodes_onehot = np.eye(classes.size)[oe.transform(gamemodes).flatten().astype(int)]
+
 	# one hot encode maps
 	classes = np.unique(maps)
 	maps_onehot = np.searchsorted(classes, maps)
@@ -546,7 +558,6 @@ def get_log_data():
 	days_onehot = np.delete(np.eye(32)[days], 0, 1)
 
 	# one hot encode weekdays
-	oe = OrdinalEncoder()
 	oe.fit([["Sunday"], ["Monday"], ["Tuesday"], ["Wednesday"], ["Thursday"], ["Friday"], ["Saturday"]])
 	weekdays_onehot = np.delete(np.eye(8)[oe.transform(weekdays).flatten().astype(int)], 7, 1)
 
