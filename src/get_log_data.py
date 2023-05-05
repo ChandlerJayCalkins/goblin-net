@@ -31,10 +31,12 @@ import numpy as np
 import pandas as pd
 # used for one hot encoding data
 from keras.utils import to_categorical
+from sklearn.preprocessing import OrdinalEncoder
 
 data_path = "data"
 
 player_data_file = "players.csv"
+gamemode_data_file = "gamemodes.csv"
 maps_data_file = "maps.csv"
 dates_data_file = "dates.csv"
 weekdays_data_file = "weekdays.csv"
@@ -46,6 +48,7 @@ stats_data_file = "stats.csv"
 def refresh_log_data(log_ids):
 	# arrays of input data to collect from each log
 	players = np.empty((0, 12), str)
+	gamemodes = np.empty((0, 1), int)
 	maps = np.empty((0, 1), str)
 	dates = np.empty((0, 3), int)
 	weekdays = np.empty((0, 1), str)
@@ -124,10 +127,34 @@ def refresh_log_data(log_ids):
 			print(f"Log version is not 3 in log {log_id}")
 			continue
 
+		# make sure scores are valid
+		if data["teams"]["Red"]["score"] > 5:
+			print(f"Red team score is too high (>5) in log {log_id}")
+			continue
+		if data["teams"]["Red"]["score"] < 0:
+			print(f"Red team score is too low (<0) in log {log_id}")
+			continue
+		if data["teams"]["Blue"]["score"] > 5:
+			print(f"Blu team score is too high (>5) in log {log_id}")
+			continue
+		if data["teams"]["Blue"]["score"] < 0:
+			print(f"Blu team score is too low (<0) in log {log_id}")
+			continue
 		# collect the scores of each team
 		score = np.array([data["teams"]["Red"]["score"], data["teams"]["Blue"]["score"]])
-		# collect the length of the match
+
+		# collect the length of the match (leave it as a list to it can be concatenated with stats later)
 		match_length = [data["info"]["total_length"]]
+
+		# find out if map is koth or control points
+		if "_" not in data["info"]["map"]:
+			print(f"Gamemode not found from map name in log {log_id}")
+			continue
+		# get the gamemode from the substring that comes before the first underscore in the map name
+		gamemode = np.array([data["info"]["map"][:data["info"]["map"].index("_")]])
+		
+		# get map name
+		map_name = np.array(data["info"]["map"], ndmin=1)
 
 		# get player data
 		player_data = data["players"]
@@ -396,9 +423,6 @@ def refresh_log_data(log_ids):
 		if error:
 			continue
 
-		# get map name
-		map_name = np.array(data["info"]["map"], ndmin=1)
-
 		# get match date in us eastern timezone (since that's the standard timezone for tf2 in na)
 		match_datetime = datetime.fromtimestamp(data["info"]["date"], tz=pytz.timezone("US/Eastern"))
 		# get match year, month, day, and day of the week
@@ -410,6 +434,7 @@ def refresh_log_data(log_ids):
 		stats = np.vstack((stats, match_stats))
 
 		players = np.vstack((players, player_sid3s))
+		gamemodes = np.vstack((gamemodes, gamemode))
 		maps = np.vstack((maps, map_name))
 		dates = np.vstack((dates, match_date))
 		weekdays = np.vstack((weekdays, match_weekday))
@@ -420,6 +445,7 @@ def refresh_log_data(log_ids):
 	
 	# create data frames for each array
 	df_players = pd.DataFrame(players)
+	df_gamemodes = pd.DataFrame(gamemodes)
 	df_maps = pd.DataFrame(maps)
 	df_dates = pd.DataFrame(dates)
 	df_weekdays = pd.DataFrame(weekdays)
@@ -428,15 +454,18 @@ def refresh_log_data(log_ids):
 	df_stats = pd.DataFrame(stats)
 
 	# store the data into csv files
-	df_players.to_csv(f"{data_path}/{player_data_file}", header=[\
+	index_label = "Index"
+
+	df_players.to_csv(f"{data_path}/{player_data_file}", index_label=index_label, header=[\
 		"Red Scout 1", "Red Scout 2", "Red Soldier 1", "Red Soldier 2", "Red Demo", "Red Medic",\
 		"Blu Scout 1", "Blu Scout 2", "Blu Soldier 1", "Blu Soldier 2", "Blu Demo", "Blu Medic"])
-	df_maps.to_csv(f"{data_path}/{maps_data_file}", header=["Map"])
-	df_dates.to_csv(f"{data_path}/{dates_data_file}", header=["Year", "Month", "Day"])
-	df_weekdays.to_csv(f"{data_path}/{weekdays_data_file}", header=["Weekday"])
+	df_gamemodes.to_csv(f"{data_path}/{gamemode_data_file}", index_label=index_label, header=["Gamemode"])
+	df_maps.to_csv(f"{data_path}/{maps_data_file}", index_label=index_label, header=["Map"])
+	df_dates.to_csv(f"{data_path}/{dates_data_file}", index_label=index_label, header=["Year", "Month", "Day"])
+	df_weekdays.to_csv(f"{data_path}/{weekdays_data_file}", index_label=index_label, header=["Weekday"])
 
-	df_scores.to_csv(f"{data_path}/{scores_data_file}", header=["Red Score", "Blu Score"])
-	df_stats.to_csv(f"{data_path}/{stats_data_file}", header=["Match Length",\
+	df_scores.to_csv(f"{data_path}/{scores_data_file}", index_label=index_label, header=["Red Score", "Blu Score"])
+	df_stats.to_csv(f"{data_path}/{stats_data_file}", index_label=index_label, header=["Match Length",\
 		"Red Scout 1 Kills", "Red Scout 1 Assists", "Red Scout 1 Deaths",\
 		"Red Scout 1 Damage", "Red Scout 1 Damage Taken",\
 		"Red Scout 2 Kills", "Red Scout 2 Assists", "Red Scout 2 Deaths",\
@@ -472,6 +501,8 @@ def get_log_data():
 	# if any of the data files are missing
 	if not os.path.isfile(f"{data_path}/{player_data_file}"):
 		raise FileNotFoundError("Missing player data file")
+	if not os.path.isfile(f"{data_path}/{gamemode_data_file}"):
+		raise FileNotFoundError("Missing gamemode data file")
 	if not os.path.isfile(f"{data_path}/{maps_data_file}"):
 		raise FileNotFoundError("Missing map data file")
 	if not os.path.isfile(f"{data_path}/{dates_data_file}"):
@@ -485,6 +516,7 @@ def get_log_data():
 	
 	# read data from csv files and turn it into arrays
 	players = np.delete(np.array(pd.read_csv(f"{data_path}/{player_data_file}")), 0, 1)
+	gamemodes = np.delete(np.array(pd.read_csv(f"{data_path}/{gamemode_data_file}")), 0, 1)
 	maps = np.delete(np.array(pd.read_csv(f"{data_path}/{maps_data_file}")), 0, 1)
 	dates = np.delete(np.array(pd.read_csv(f"{data_path}/{dates_data_file}")), 0, 1)
 	weekdays = np.delete(np.array(pd.read_csv(f"{data_path}/{weekdays_data_file}")), 0, 1)
@@ -492,14 +524,33 @@ def get_log_data():
 	scores = np.delete(np.array(pd.read_csv(f"{data_path}/{scores_data_file}")), 0, 1)
 	stats = np.delete(np.array(pd.read_csv(f"{data_path}/{stats_data_file}")), 0, 1)
 
-	# encode some of the data with one hot encoding
+	# encode the categorical data with one hot encoding
+
+	# one hot encode players
 	classes = np.unique(players)
 	players_onehot = np.searchsorted(classes, players)
 	players_onehot = to_categorical(players_onehot)
-	print(players_onehot)
-	print(players_onehot.shape)
 	players_onehot = players_onehot.reshape(players.shape[0], players_onehot.shape[1] * players_onehot.shape[2])
-	print(players_onehot)
-	print(players_onehot.shape)
+
+	# one hot encode maps
+	classes = np.unique(maps)
+	maps_onehot = np.searchsorted(classes, maps)
+	maps_onehot = to_categorical(maps_onehot)
+
+	# one hot encode months
+	months = dates[:, 1]
+	months_onehot = np.delete(np.eye(13)[months], 0, 1)
+
+	# one hot encode days
+	days = dates[:, 2]
+	days_onehot = np.delete(np.eye(32)[days], 0, 1)
+
+	# one hot encode weekdays
+	oe = OrdinalEncoder()
+	oe.fit([["Sunday"], ["Monday"], ["Tuesday"], ["Wednesday"], ["Thursday"], ["Friday"], ["Saturday"]])
+	weekdays_onehot = np.delete(np.eye(8)[oe.transform(weekdays).flatten().astype(int)], 7, 1)
+
+	# one hot encode team scores
+	print(scores)
 
 	# use np.hstack() to horizontally combine the right arrays together
