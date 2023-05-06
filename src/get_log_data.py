@@ -13,6 +13,9 @@
 #
 ########################################################################################################################
 
+# used for reading html pages
+# pip install beautifulsoup4 / conda install beautifulsoup4
+from bs4 import BeautifulSoup
 # used for getting data from web pages
 from urllib.request import urlopen
 # used for getting around needing to verify logs.tf's ssl certificate to get data from the website
@@ -33,19 +36,40 @@ import pandas as pd
 from keras.utils import to_categorical
 from sklearn.preprocessing import OrdinalEncoder
 
+# name of data folder
 data_path = "data"
+# data file extension
+file_ext = ".csv"
 
-player_data_file = "players.csv"
-gamemode_data_file = "gamemodes.csv"
-maps_data_file = "maps.csv"
-dates_data_file = "dates.csv"
-weekdays_data_file = "weekdays.csv"
+# names of input data files
+player_data_file = "players"
+gamemode_data_file = "gamemodes"
+maps_data_file = "maps"
+dates_data_file = "dates"
+weekdays_data_file = "weekdays"
 
-scores_data_file = "scores.csv"
-stats_data_file = "stats.csv"
+# names of output data files
+scores_data_file = "scores"
+stats_data_file = "stats"
 
-inputs_data_file = "inputs.csv"
-outputs_data_file = "outputs.csv"
+# names of data files that have been prepared to be fed into the goblin
+inputs_data_file = "inputs"
+outputs_data_file = "outputs"
+
+# paths to input data files
+player_data_path = f"{data_path}/{player_data_file}{file_ext}"
+gamemode_data_path = f"{data_path}/{gamemode_data_file}{file_ext}"
+maps_data_path = f"{data_path}/{maps_data_file}{file_ext}"
+dates_data_path = f"{data_path}/{dates_data_file}{file_ext}"
+weekdays_data_path = f"{data_path}/{weekdays_data_file}{file_ext}"
+
+# paths to output data files
+scores_data_path = f"{data_path}/{scores_data_file}{file_ext}"
+stats_data_path = f"{data_path}/{stats_data_file}{file_ext}"
+
+# paths to data files that have been prepared to be fed into the goblin
+inputs_data_path = f"{data_path}/{inputs_data_file}{file_ext}"
+outputs_data_path = f"{data_path}/{outputs_data_file}{file_ext}"
 
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
 def refresh_log_data(log_ids):
@@ -456,19 +480,21 @@ def refresh_log_data(log_ids):
 	df_scores = pd.DataFrame(scores)
 	df_stats = pd.DataFrame(stats)
 
-	# store the data into csv files
+	# column name of index column in csv files
 	index_label = "Index"
 
-	df_players.to_csv(f"{data_path}/{player_data_file}", index_label=index_label, header=[\
+	# store input data into csv files
+	df_players.to_csv(player_data_path, index_label=index_label, header=[\
 		"Red Scout 1", "Red Scout 2", "Red Soldier 1", "Red Soldier 2", "Red Demo", "Red Medic",\
 		"Blu Scout 1", "Blu Scout 2", "Blu Soldier 1", "Blu Soldier 2", "Blu Demo", "Blu Medic"])
-	df_gamemodes.to_csv(f"{data_path}/{gamemode_data_file}", index_label=index_label, header=["Gamemode"])
-	df_maps.to_csv(f"{data_path}/{maps_data_file}", index_label=index_label, header=["Map"])
-	df_dates.to_csv(f"{data_path}/{dates_data_file}", index_label=index_label, header=["Year", "Month", "Day"])
-	df_weekdays.to_csv(f"{data_path}/{weekdays_data_file}", index_label=index_label, header=["Weekday"])
+	df_gamemodes.to_csv(gamemode_data_path, index_label=index_label, header=["Gamemode"])
+	df_maps.to_csv(maps_data_path, index_label=index_label, header=["Map"])
+	df_dates.to_csv(dates_data_path, index_label=index_label, header=["Year", "Month", "Day"])
+	df_weekdays.to_csv(weekdays_data_path, index_label=index_label, header=["Weekday"])
 
-	df_scores.to_csv(f"{data_path}/{scores_data_file}", index_label=index_label, header=["Red Score", "Blu Score"])
-	df_stats.to_csv(f"{data_path}/{stats_data_file}", index_label=index_label, header=["Match Length",\
+	# store output data into csv files
+	df_scores.to_csv(scores_data_path, index_label=index_label, header=["Red Score", "Blu Score"])
+	df_stats.to_csv(stats_data_path, index_label=index_label, header=["Match Length",\
 		"Red Scout 1 Kills", "Red Scout 1 Assists", "Red Scout 1 Deaths",\
 		"Red Scout 1 Damage", "Red Scout 1 Damage Taken",\
 		"Red Scout 2 Kills", "Red Scout 2 Assists", "Red Scout 2 Deaths",\
@@ -502,29 +528,27 @@ def encode_log_data():
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
 	# if any of the data files are missing
-	if not os.path.isfile(f"{data_path}/{player_data_file}"):
+	if not os.path.isfile(player_data_path):
 		raise FileNotFoundError("Missing player data file")
-	if not os.path.isfile(f"{data_path}/{gamemode_data_file}"):
+	if not os.path.isfile(gamemode_data_path):
 		raise FileNotFoundError("Missing gamemode data file")
-	if not os.path.isfile(f"{data_path}/{maps_data_file}"):
+	if not os.path.isfile(maps_data_path):
 		raise FileNotFoundError("Missing map data file")
-	if not os.path.isfile(f"{data_path}/{dates_data_file}"):
+	if not os.path.isfile(dates_data_path):
 		raise FileNotFoundError("Missing date data file")
-	if not os.path.isfile(f"{data_path}/{weekdays_data_file}"):
+	if not os.path.isfile(weekdays_data_path):
 		raise FileNotFoundError("Missing weekday data file")
-	if not os.path.isfile(f"{data_path}/{scores_data_file}"):
+	if not os.path.isfile(scores_data_path):
 		raise FileNotFoundError("Missing score data file")
-	if not os.path.isfile(f"{data_path}/{stats_data_file}"):
-		raise FileNotFoundError("Missing stats data file")
 	
 	# read data from csv files and turn it into arrays
-	players = np.delete(np.array(pd.read_csv(f"{data_path}/{player_data_file}")), 0, 1)
-	gamemodes = np.delete(np.array(pd.read_csv(f"{data_path}/{gamemode_data_file}")), 0, 1)
-	maps = np.delete(np.array(pd.read_csv(f"{data_path}/{maps_data_file}")), 0, 1)
-	dates = np.delete(np.array(pd.read_csv(f"{data_path}/{dates_data_file}")), 0, 1)
-	weekdays = np.delete(np.array(pd.read_csv(f"{data_path}/{weekdays_data_file}")), 0, 1)
+	players = np.delete(np.array(pd.read_csv(player_data_path)), 0, 1)
+	gamemodes = np.delete(np.array(pd.read_csv(gamemode_data_path)), 0, 1)
+	maps = np.delete(np.array(pd.read_csv(maps_data_path)), 0, 1)
+	dates = np.delete(np.array(pd.read_csv(dates_data_path)), 0, 1)
+	weekdays = np.delete(np.array(pd.read_csv(weekdays_data_path)), 0, 1)
 
-	scores = np.delete(np.array(pd.read_csv(f"{data_path}/{scores_data_file}")), 0, 1)
+	scores = np.delete(np.array(pd.read_csv(scores_data_path)), 0, 1)
 
 	# encode the categorical data with one hot encoding
 
@@ -576,8 +600,8 @@ def encode_log_data():
 	df_outputs = pd.DataFrame(scores_onehot)
 
 	# write inputs and outputs to csv files
-	df_inputs.to_csv(f"{data_path}/{inputs_data_file}", header=False, index=False)
-	df_outputs.to_csv(f"{data_path}/{outputs_data_file}", header=False, index=False)
+	df_inputs.to_csv(inputs_data_path, header=False, index=False)
+	df_outputs.to_csv(outputs_data_path, header=False, index=False)
 
 # gets the inputs and outputs
 def get_log_data(with_stats=False):
@@ -585,20 +609,20 @@ def get_log_data(with_stats=False):
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
 	# make sure csv data files exist
-	if not os.path.isfile(f"{data_path}/{inputs_data_file}"):
+	if not os.path.isfile(inputs_data_path):
 		raise FileNotFoundError("Missing input data file")
-	if not os.path.isfile(f"{data_path}/{outputs_data_file}"):
+	if not os.path.isfile(outputs_data_path):
 		raise FileNotFoundError("Missing output data file")
-	if with_stats and not os.path.isfile(f"{data_path}/{stats_data_file}"):
+	if with_stats and not os.path.isfile(stats_data_path):
 		raise FileNotFoundError("Missing stats data file")
 	
 	# get inputs and outputs for goblin from csv files
-	inputs = np.array(pd.read_csv(f"{data_path}/{inputs_data_file}"))
-	outputs = np.array(pd.read_csv(f"{data_path}/{outputs_data_file}"))
+	inputs = np.array(pd.read_csv(inputs_data_path))
+	outputs = np.array(pd.read_csv(outputs_data_path))
 	# if the stats were requested
 	if with_stats:
 		# get stats from csv file
-		stats = np.array(pd.read_csv(f"{data_path}/{stats_data_file}"))
+		stats = np.array(pd.read_csv(stats_data_path))
 		return inputs, outputs, stats
 	# if stats were not requested
 	else:
