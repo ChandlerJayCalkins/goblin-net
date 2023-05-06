@@ -95,7 +95,7 @@ profile_log_url = "profile/"
 unverified_context = ssl._create_unverified_context()
 
 # reads from a file of steam profiles and returns the log ids of the last few pages of each of their logs
-def store_logs(pages):
+def get_logs(pages):
 	# if there isn't a folder for the data
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
@@ -188,8 +188,12 @@ def store_logs(pages):
 	df_logs = pd.DataFrame(log_ids)
 	df_logs.to_csv(log_data_path, header=["Log ID"], index=False)
 
+# returns an array of log ids that were retrieved from get_logs()
+def read_log_ids():
+	pass
+
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
-def refresh_log_data(log_ids):
+def get_log_data(log_ids):
 	# arrays of input data to collect from each log
 	players = np.empty((0, 12), str)
 	gamemodes = np.empty((0, 1), int)
@@ -635,7 +639,7 @@ def refresh_log_data(log_ids):
 		"Blu Medic Heals", "Blu Medic Ubers", "Blu Medic Drops"])
 
 # gets raw log data from csv files and prepare it to be fed into the goblin
-def encode_log_data():
+def prepare_log_data():
 	# if there isn't a folder for the data
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
@@ -716,7 +720,7 @@ def encode_log_data():
 	df_outputs.to_csv(outputs_data_path, index=False)
 
 # gets the inputs and outputs
-def get_log_data(with_stats=False):
+def read_log_data(with_stats=False):
 	# if there isn't a folder for the data
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
