@@ -591,3 +591,15 @@ def get_log_data(with_stats=False):
 		raise FileNotFoundError("Missing output data file")
 	if with_stats and not os.path.isfile(f"{data_path}/{stats_data_file}"):
 		raise FileNotFoundError("Missing stats data file")
+	
+	# get inputs and outputs for goblin from csv files
+	inputs = np.array(pd.read_csv(f"{data_path}/{inputs_data_file}"))
+	outputs = np.array(pd.read_csv(f"{data_path}/{outputs_data_file}"))
+	# if the stats were requested
+	if with_stats:
+		# get stats from csv file
+		stats = np.array(pd.read_csv(f"{data_path}/{stats_data_file}"))
+		return inputs, outputs, stats
+	# if stats were not requested
+	else:
+		return inputs, outputs
