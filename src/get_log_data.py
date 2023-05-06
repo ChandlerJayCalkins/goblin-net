@@ -585,9 +585,9 @@ def get_log_data(with_stats=False):
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
 	# make sure csv data files exist
-	if not os.path.isfile(f"{data_path}/{input_data_file}"):
+	if not os.path.isfile(f"{data_path}/{inputs_data_file}"):
 		raise FileNotFoundError("Missing input data file")
-	if not os.path.isfile(f"{data_path}/{output_data_file}"):
+	if not os.path.isfile(f"{data_path}/{outputs_data_file}"):
 		raise FileNotFoundError("Missing output data file")
 	if with_stats and not os.path.isfile(f"{data_path}/{stats_data_file}"):
 		raise FileNotFoundError("Missing stats data file")
