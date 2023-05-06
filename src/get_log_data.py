@@ -47,8 +47,10 @@ file_ext = ".csv"
 
 # name of steam profile data file
 profile_data_file = "profiles"
-# name of data file containing log ids to train and test on
+# name of data file containing log ids of logs to extract data from
 log_data_file = "logs"
+# name of data file containing log ids of valid logs that will be used
+used_logs_file = "used_logs"
 
 # names of input data files
 player_data_file = "players"
@@ -69,6 +71,8 @@ outputs_data_file = "outputs"
 profile_data_path = f"{data_path}/{profile_data_file}{file_ext}"
 # path to log data file
 log_data_path = f"{data_path}/{log_data_file}{file_ext}"
+# path to used logs data file
+used_logs_path = f"{data_path}/{used_logs_file}{file_ext}"
 
 # paths to input data files
 player_data_path = f"{data_path}/{player_data_file}{file_ext}"
@@ -204,7 +208,11 @@ def read_log_ids():
 	return np.array(pd.read_csv(log_data_path), dtype=str).flatten()
 
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
+# returns the number of valid logs that it stored data from
 def fetch_log_data(log_ids):
+	# array of ids of logs that were actually used
+	used_logs = np.array([], dtype=str)
+
 	# arrays of input data to collect from each log
 	players = np.empty((0, 12), str)
 	gamemodes = np.empty((0, 1), int)
@@ -227,7 +235,7 @@ def fetch_log_data(log_ids):
 		# turn data from json file into dictionary
 		data = json.loads(response.read())
 
-		# Make sure all keys needed from dictionary are present
+		# Check that all necessary dictionary keys exist
 
 		# make sure there is version data
 		if "version" not in data:
@@ -275,6 +283,8 @@ def fetch_log_data(log_ids):
 		if "date" not in data["info"]:
 			print(f"Date missing from log {log_id}")
 			continue
+
+		# Validate and extract necessary data from log
 
 		# make sure log version is correct
 		if data["version"] != 3:
@@ -520,6 +530,7 @@ def fetch_log_data(log_ids):
 		
 		# if there was an error encountered inside the loop
 		if error:
+			# stop using this log and move to next one
 			continue
 
 		# make sure there are the correct amount of players for each class on each team
@@ -584,20 +595,28 @@ def fetch_log_data(log_ids):
 		match_weekday = np.array(match_datetime.strftime("%A"), ndmin=1)
 
 		# add all of the data collected from this match to the collective data arrays
-		scores = np.vstack((scores, score))
-		stats = np.vstack((stats, match_stats))
 
+		# log id that was used
+		used_logs = np.append(used_logs, log_id)
+
+		# input data
 		players = np.vstack((players, player_sid3s))
 		gamemodes = np.vstack((gamemodes, gamemode))
 		maps = np.vstack((maps, map_name))
 		dates = np.vstack((dates, match_date))
 		weekdays = np.vstack((weekdays, match_weekday))
 
+		# output data
+		scores = np.vstack((scores, score))
+		stats = np.vstack((stats, match_stats))
+
 	# if there isn't already a folder for the data, create one
 	if not os.path.isdir(data_path):
 		os.mkdir(data_path)
 	
 	# create data frames for each array
+	df_used_logs = pd.DataFrame(used_logs)
+
 	df_players = pd.DataFrame(players)
 	df_gamemodes = pd.DataFrame(gamemodes)
 	df_maps = pd.DataFrame(maps)
@@ -609,6 +628,9 @@ def fetch_log_data(log_ids):
 
 	# column name of index column in csv files
 	index_label = "Index"
+
+	# store ids of logs that were valid and will be used to csv files
+	df_used_logs.to_csv(used_logs_path, index_label=index_label, header=["Log ID"])
 
 	# store input data into csv files
 	df_players.to_csv(player_data_path, index_label=index_label, header=[\
@@ -648,6 +670,9 @@ def fetch_log_data(log_ids):
 		"Blu Medic Kills", "Blu Medic Assists", "Blu Medic Deaths",\
 		"Blu Medic Damage", "Blu Medic Damage Taken",\
 		"Blu Medic Heals", "Blu Medic Ubers", "Blu Medic Drops"])
+	
+	# return the number of valid logs that it stored data from
+	return used_logs.size
 
 # gets raw log data from csv files and prepare it to be fed into the goblin
 def prepare_log_data():
