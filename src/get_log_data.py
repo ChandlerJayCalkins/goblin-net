@@ -37,7 +37,7 @@ from keras.utils import to_categorical
 from sklearn.preprocessing import OrdinalEncoder
 
 # name of data folder
-data_path = "data"
+data_path = "../data"
 # data file extension
 file_ext = ".csv"
 
