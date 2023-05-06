@@ -44,6 +44,9 @@ weekdays_data_file = "weekdays.csv"
 scores_data_file = "scores.csv"
 stats_data_file = "stats.csv"
 
+inputs_data_file = "inputs.csv"
+outputs_data_file = "outputs.csv"
+
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
 def refresh_log_data(log_ids):
 	# arrays of input data to collect from each log
@@ -493,8 +496,8 @@ def refresh_log_data(log_ids):
 		"Blu Medic Damage", "Blu Medic Damage Taken",\
 		"Blu Medic Heals", "Blu Medic Ubers", "Blu Medic Drops"])
 
-# gets log data from csv files and prepare it to be fed into the goblin
-def get_log_data():
+# gets raw log data from csv files and prepare it to be fed into the goblin
+def encode_log_data():
 	# if there isn't a folder for the data
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
@@ -522,7 +525,6 @@ def get_log_data():
 	weekdays = np.delete(np.array(pd.read_csv(f"{data_path}/{weekdays_data_file}")), 0, 1)
 
 	scores = np.delete(np.array(pd.read_csv(f"{data_path}/{scores_data_file}")), 0, 1)
-	stats = np.delete(np.array(pd.read_csv(f"{data_path}/{stats_data_file}")), 0, 1)
 
 	# encode the categorical data with one hot encoding
 
@@ -562,6 +564,30 @@ def get_log_data():
 	weekdays_onehot = np.delete(np.eye(8)[oe.transform(weekdays).flatten().astype(int)], 7, 1)
 
 	# one hot encode team scores
-	print(scores)
+	score_cap = 6
+	scores_onehot = np.eye(score_cap)[scores].reshape(scores.shape[0], scores.shape[1] * score_cap)
 
-	# use np.hstack() to horizontally combine the right arrays together
+	# use np.hstack() to horizontally combine the input and input arrays together
+	inputs = np.hstack((players_onehot, np.hstack((gamemodes_onehot, np.hstack((maps_onehot, np.hstack((\
+		dates.astype(float), np.hstack((months_onehot, np.hstack((days_onehot, weekdays_onehot))))))))))))
+	
+	# create dataframes for inputs and outputs
+	df_inputs = pd.DataFrame(inputs)
+	df_outputs = pd.DataFrame(scores_onehot)
+
+	# write inputs and outputs to csv files
+	df_inputs.to_csv(f"{data_path}/{inputs_data_file}", header=False, index=False)
+	df_outputs.to_csv(f"{data_path}/{outputs_data_file}", header=False, index=False)
+
+# gets the inputs and outputs
+def get_log_data(with_stats=False):
+	# if there isn't a folder for the data
+	if not os.path.isdir(data_path):
+		raise FileNotFoundError("Missing data folder.")
+	# make sure csv data files exist
+	if not os.path.isfile(f"{data_path}/{input_data_file}"):
+		raise FileNotFoundError("Missing input data file")
+	if not os.path.isfile(f"{data_path}/{output_data_file}"):
+		raise FileNotFoundError("Missing output data file")
+	if with_stats and not os.path.isfile(f"{data_path}/{stats_data_file}"):
+		raise FileNotFoundError("Missing stats data file")
