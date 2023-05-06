@@ -1,5 +1,9 @@
 # Custom ignores for this repo
-data/*
+
+# Ignores the data in the data folder
+#data/*
+# Ignores the list of steam profiles to get logs from
+profiles.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -71,6 +71,10 @@ stats_data_path = f"{data_path}/{stats_data_file}{file_ext}"
 inputs_data_path = f"{data_path}/{inputs_data_file}{file_ext}"
 outputs_data_path = f"{data_path}/{outputs_data_file}{file_ext}"
 
+# reads from a file of steam profiles and returns the log ids of the last few pages of each of their logs
+def store_logs(pages):
+	pass
+
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
 def refresh_log_data(log_ids):
 	# arrays of input data to collect from each log
