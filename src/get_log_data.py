@@ -13,6 +13,10 @@
 #
 ########################################################################################################################
 
+# used for getting steam ids from steam profile urls
+# pip install python-steam-api
+from steam import Steam
+from decouple import config
 # used for reading html pages
 # pip install beautifulsoup4 / conda install beautifulsoup4
 from bs4 import BeautifulSoup
@@ -41,6 +45,11 @@ data_path = "../data"
 # data file extension
 file_ext = ".csv"
 
+# name of steam profile data file
+profile_data_file = "profiles"
+# name of data file containing log ids to train and test on
+log_data_file = "logs"
+
 # names of input data files
 player_data_file = "players"
 gamemode_data_file = "gamemodes"
@@ -55,6 +64,11 @@ stats_data_file = "stats"
 # names of data files that have been prepared to be fed into the goblin
 inputs_data_file = "inputs"
 outputs_data_file = "outputs"
+
+# path to steam profile data file
+profile_data_path = f"{data_path}/{profile_data_file}{file_ext}"
+# path to log data file
+log_data_path = f"{data_path}/{log_data_file}{file_ext}"
 
 # paths to input data files
 player_data_path = f"{data_path}/{player_data_file}{file_ext}"
@@ -71,9 +85,108 @@ stats_data_path = f"{data_path}/{stats_data_file}{file_ext}"
 inputs_data_path = f"{data_path}/{inputs_data_file}{file_ext}"
 outputs_data_path = f"{data_path}/{outputs_data_file}{file_ext}"
 
+# parts of logs.tf urls
+log_tf_url = "https://logs.tf/"
+json_log_url = "json/"
+profile_log_url = "profile/"
+
+# create context that doesn't require ssl certificate verification when requesting from website
+# since logs.tf's ssl certificate is expired apparently lol
+unverified_context = ssl._create_unverified_context()
+
 # reads from a file of steam profiles and returns the log ids of the last few pages of each of their logs
 def store_logs(pages):
-	pass
+	# if there isn't a folder for the data
+	if not os.path.isdir(data_path):
+		raise FileNotFoundError("Missing data folder.")
+	# if any of the data files are missing
+	if not os.path.isfile(profile_data_path):
+		raise FileNotFoundError("Missing steam profile data file")
+	
+	# read list of steam profile urls
+	profiles = np.array(pd.read_csv(profile_data_path))
+	# connect to steam api with steam key
+	# make sure to create a file called ".env" and put it in the root directory of this repo,
+	# and in that file put "STEAM_API_KEY=*your steam api key*"
+	# you can get a steam api key from https://steamcommunity.com/dev/apikey
+	steam_api_key = config("STEAM_API_KEY")
+	steam = Steam(steam_api_key)
+	# prefix for steam url
+	steam_prefix = "https://steamcommunity.com/"
+
+	# array of all of the log ids
+	log_ids = np.array([], dtype=str)
+
+	# for each steam profile url that was read from the file
+	for profile in profiles:
+		# get the steam id of the profile
+
+		steam_id = None
+		# if the url already contains the steam id, then just get the id from the url
+		if profile[0].startswith(steam_prefix + "profiles/"):
+			steam_id = profile[0][36:]
+		# if this is a custom url
+		elif profile[0].startswith(steam_prefix + "id/"):
+			# get the name from the custom url
+			custom_url = profile[0][30:-1]
+			# get user info from steam api
+			steam_user = steam.users.search_user(custom_url)
+			# if there was no match found or there was an error in retrieving the steam info of the user
+			if steam_user == "No match" or type(steam_user) is not dict:
+				print(f"User not found from {profile[0]}")
+				continue
+			# if the player key is missing from the steam user dict
+			if "player" not in steam_user:
+				print(f"'player' key missing from steam info retrieved from {profile[0]}")
+				continue
+			# if the steamid key is missing from the retrieved steam info
+			if "steamid" not in steam_user["player"]:
+				print(f"Steam ID missing from steam info retrieved from {profile[0]}")
+				continue
+			# get the steam id of the user
+			steam_id = steam_user["player"]["steamid"]
+		else:
+			print(f"Could not identify steam profile format from {profile[0]}")
+			continue
+
+		# collect list of log ids from last few pages of player's logs.tf profile
+		for page in range(1, pages + 1):
+			response = urlopen(log_tf_url + profile_log_url + steam_id + f"?p={page}", context=unverified_context)
+			# if there aren't any pages left in the player's logs (defaults back to logs.tf home page)
+			if response.url == log_tf_url:
+				print(f"No more logs on page {page} for {profile[0]}")
+				break
+
+			# create html parser to find log ids from web page
+			soup = BeautifulSoup(response.read(), "html.parser")
+			# find each <tr> element in the page (they contain the log ids)
+			trs = soup.find_all("tr", id=True)
+			# if no <tr> elements were found, don't check for a next page
+			if len(trs) < 1:
+				print(f"No more logs on page {page} for {profile[0]}")
+				break
+
+			# loop through each tr element to find all of the log ids
+			for tr in soup.find_all("tr", id=True):
+				# get the html element id of the <tr> element
+				id = tr["id"]
+				# if the html element id of the <tr> element isn't of the form "log_*log id*",
+				# then it doesn't contain a log id
+				if not id.startswith("log_"):
+					continue
+				# extract the log id from the html element id
+				id_index = id.index("_") + 1
+				log_id = id[id_index:]
+				# append the log id to the array of log ids
+				log_ids = np.append(log_ids, log_id)
+	
+	# if there isn't already a folder for the data, create one
+	if not os.path.isdir(data_path):
+		os.mkdir(data_path)
+
+	# output the log ids to a csv file
+	df_logs = pd.DataFrame(log_ids)
+	df_logs.to_csv(log_data_path, header=["Log ID"], index=False)
 
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
 def refresh_log_data(log_ids):
@@ -92,15 +205,10 @@ def refresh_log_data(log_ids):
 	for log_id in log_ids:
 		# Read json data of log
 
-		# get parts of necessary urls
-		log_url_p1 = "https://logs.tf/"
-		log_url_p2 = "json/"
 		# concatenate to form json url and original log page url
-		log_json_url = log_url_p1 + log_url_p2 + log_id
-		# create context that doesn't require ssl certificate verification when requesting from website
-		context = ssl._create_unverified_context()
+		log_json_url = log_tf_url + json_log_url + log_id
 		# request data from json file of log
-		response = urlopen(log_json_url, context=context)
+		response = urlopen(log_json_url, context=unverified_context)
 		# turn data from json file into dictionary
 		data = json.loads(response.read())
 
@@ -604,8 +712,8 @@ def encode_log_data():
 	df_outputs = pd.DataFrame(scores_onehot)
 
 	# write inputs and outputs to csv files
-	df_inputs.to_csv(inputs_data_path, header=False, index=False)
-	df_outputs.to_csv(outputs_data_path, header=False, index=False)
+	df_inputs.to_csv(inputs_data_path, index=False)
+	df_outputs.to_csv(outputs_data_path, index=False)
 
 # gets the inputs and outputs
 def get_log_data(with_stats=False):

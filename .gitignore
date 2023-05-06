@@ -4,6 +4,8 @@
 data/*
 # Ignores the list of steam profiles to get logs from
 profiles.csv
+# Ignores .env containing Steam API Key
+.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
