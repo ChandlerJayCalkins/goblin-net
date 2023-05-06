@@ -1,7 +1,7 @@
 # Custom ignores for this repo
 
 # Ignores the data in the data folder
-#data/*
+data/*
 # Ignores the list of steam profiles to get logs from
 profiles.csv
 
