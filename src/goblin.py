@@ -16,10 +16,14 @@
 from get_log_data import *
 
 get_logs(1)
-#log_ids = ["3389150", "3389174", "3389227", "3389291"]
-#get_log_data(log_ids)
-#prepare_log_data()
-#inputs, outputs = read_log_data()
-#print(inputs)
-#print("-" * 50)
-#print(outputs)
+log_ids = read_log_ids()
+get_log_data(log_ids)
+prepare_log_data()
+inputs, targets = read_log_data()
+print("Inputs:")
+print(inputs)
+print(inputs.shape)
+print("-" * 50)
+print("Targets:")
+print(targets)
+print(targets.shape)

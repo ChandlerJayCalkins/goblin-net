@@ -104,7 +104,7 @@ def get_logs(pages):
 		raise FileNotFoundError("Missing steam profile data file")
 	
 	# read list of steam profile urls
-	profiles = np.array(pd.read_csv(profile_data_path))
+	profiles = np.array(pd.read_csv(profile_data_path, header=None))
 	# connect to steam api with steam key
 	# make sure to create a file called ".env" and put it in the root directory of this repo,
 	# and in that file put "STEAM_API_KEY=*your steam api key*"
@@ -180,6 +180,9 @@ def get_logs(pages):
 				# append the log id to the array of log ids
 				log_ids = np.append(log_ids, log_id)
 	
+	# make sure there are no duplicate logs
+	log_ids = np.unique(log_ids)
+
 	# if there isn't already a folder for the data, create one
 	if not os.path.isdir(data_path):
 		os.mkdir(data_path)
@@ -190,7 +193,15 @@ def get_logs(pages):
 
 # returns an array of log ids that were retrieved from get_logs()
 def read_log_ids():
-	pass
+	# if there isn't a folder for the data
+	if not os.path.isdir(data_path):
+		raise FileNotFoundError("Missing data folder.")
+	# if the log ids are missing
+	if not os.path.isfile(log_data_path):
+		raise FileNotFoundError("Missing log ID data file")
+	
+	# read the log id file and return an array of the log ids
+	return np.array(pd.read_csv(log_data_path), dtype=str).flatten()
 
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
 def get_log_data(log_ids):
@@ -716,8 +727,8 @@ def prepare_log_data():
 	df_outputs = pd.DataFrame(scores_onehot)
 
 	# write inputs and outputs to csv files
-	df_inputs.to_csv(inputs_data_path, index=False)
-	df_outputs.to_csv(outputs_data_path, index=False)
+	df_inputs.to_csv(inputs_data_path, header=False, index=False)
+	df_outputs.to_csv(outputs_data_path, header=False, index=False)
 
 # gets the inputs and outputs
 def read_log_data(with_stats=False):
@@ -733,8 +744,8 @@ def read_log_data(with_stats=False):
 		raise FileNotFoundError("Missing stats data file")
 	
 	# get inputs and outputs for goblin from csv files
-	inputs = np.array(pd.read_csv(inputs_data_path))
-	outputs = np.array(pd.read_csv(outputs_data_path))
+	inputs = np.array(pd.read_csv(inputs_data_path, header=None))
+	outputs = np.array(pd.read_csv(outputs_data_path, header=None))
 	# if the stats were requested
 	if with_stats:
 		# get stats from csv file
