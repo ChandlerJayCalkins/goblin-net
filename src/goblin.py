@@ -17,7 +17,7 @@ from get_log_data import *
 
 get_logs(1)
 log_ids = read_log_ids()
-get_log_data(log_ids)
+fetch_log_data(log_ids)
 prepare_log_data()
 inputs, targets = read_log_data()
 print("Inputs:")
