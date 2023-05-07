@@ -327,6 +327,14 @@ def fetch_log_data(log_ids):
 			print(f"Player count is not 12 in log {log_id}")
 			continue
 
+		# adds player stats to numpy arrays
+		def _add_class_stats(player_stats, player, *keys):
+			# adds stats to stats list
+			for key in keys:
+				player_stats = np.append(player_stats, player[key])
+			
+			return player_stats
+
 		# arrays of players playing each class on each team that will be concatenated later
 		red_scouts = np.array([], dtype=str)
 		red_soldiers = np.array([], dtype=str)
@@ -409,25 +417,16 @@ def fetch_log_data(log_ids):
 					# place them in the correct team / class list for sorting
 					red_scouts = np.append(red_scouts, sid3)
 					# add their stats to the correct team / class list for sorting
-					red_scouts_stats = np.append(red_scouts_stats, player[key_kills])
-					red_scouts_stats = np.append(red_scouts_stats, player[key_assists])
-					red_scouts_stats = np.append(red_scouts_stats, player[key_deaths])
-					red_scouts_stats = np.append(red_scouts_stats, player[key_dmg])
-					red_scouts_stats = np.append(red_scouts_stats, player[key_dt])
+					red_scouts_stats = _add_class_stats(red_scouts_stats, player, key_kills, key_assists,\
+						key_deaths, key_dmg, key_dt)
 				elif player[key_stats][0][key_type] == "soldier":
 					red_soldiers = np.append(red_soldiers, sid3)
-					red_soldiers_stats = np.append(red_soldiers_stats, player[key_kills])
-					red_soldiers_stats = np.append(red_soldiers_stats, player[key_assists])
-					red_soldiers_stats = np.append(red_soldiers_stats, player[key_deaths])
-					red_soldiers_stats = np.append(red_soldiers_stats, player[key_dmg])
-					red_soldiers_stats = np.append(red_soldiers_stats, player[key_dt])
+					red_soldiers_stats = _add_class_stats(red_soldiers_stats, player, key_kills, key_assists,\
+						key_deaths, key_dmg, key_dt)
 				elif player[key_stats][0][key_type] == "demoman":
 					red_demo = np.append(red_demo, sid3)
-					red_demo_stats = np.append(red_demo_stats, player[key_kills])
-					red_demo_stats = np.append(red_demo_stats, player[key_assists])
-					red_demo_stats = np.append(red_demo_stats, player[key_deaths])
-					red_demo_stats = np.append(red_demo_stats, player[key_dmg])
-					red_demo_stats = np.append(red_demo_stats, player[key_dt])
+					red_demo_stats = _add_class_stats(red_demo_stats, player, key_kills, key_assists,\
+						key_deaths, key_dmg, key_dt)
 				elif player[key_stats][0][key_type] == "medic":
 					# key names for each medic statistic
 					key_heals = "heal"
@@ -449,14 +448,8 @@ def fetch_log_data(log_ids):
 					# place them in the correct team / class list for sorting
 					red_med = np.append(red_med, sid3)
 					# add their stats to the correct team / class list for sorting
-					red_med_stats = np.append(red_med_stats, player[key_kills])
-					red_med_stats = np.append(red_med_stats, player[key_assists])
-					red_med_stats = np.append(red_med_stats, player[key_deaths])
-					red_med_stats = np.append(red_med_stats, player[key_dmg])
-					red_med_stats = np.append(red_med_stats, player[key_dt])
-					red_med_stats = np.append(red_med_stats, player[key_heals])
-					red_med_stats = np.append(red_med_stats, player[key_ubers])
-					red_med_stats = np.append(red_med_stats, player[key_drops])
+					red_med_stats = _add_class_stats(red_med_stats, player, key_kills, key_assists,\
+				    	key_deaths, key_dmg, key_dt, key_heals, key_ubers, key_drops)
 				# if the class isn't a meta sixes class
 				else:
 					print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
@@ -469,25 +462,16 @@ def fetch_log_data(log_ids):
 					# place them in the correct team / class list for sorting
 					blu_scouts = np.append(blu_scouts, sid3)
 					# add their stats to the correct team / class list for sorting
-					blu_scouts_stats = np.append(blu_scouts_stats, player[key_kills])
-					blu_scouts_stats = np.append(blu_scouts_stats, player[key_assists])
-					blu_scouts_stats = np.append(blu_scouts_stats, player[key_deaths])
-					blu_scouts_stats = np.append(blu_scouts_stats, player[key_dmg])
-					blu_scouts_stats = np.append(blu_scouts_stats, player[key_dt])
+					blu_scouts_stats = _add_class_stats(blu_scouts_stats, player, key_kills, key_assists,\
+						key_deaths, key_dmg, key_dt)
 				elif player[key_stats][0][key_type] == "soldier":
 					blu_soldiers = np.append(blu_soldiers, sid3)
-					blu_soldiers_stats = np.append(blu_soldiers_stats, player[key_kills])
-					blu_soldiers_stats = np.append(blu_soldiers_stats, player[key_assists])
-					blu_soldiers_stats = np.append(blu_soldiers_stats, player[key_deaths])
-					blu_soldiers_stats = np.append(blu_soldiers_stats, player[key_dmg])
-					blu_soldiers_stats = np.append(blu_soldiers_stats, player[key_dt])
+					blu_soldiers_stats = _add_class_stats(blu_soldiers_stats, player, key_kills, key_assists,\
+						key_deaths, key_dmg, key_dt)
 				elif player[key_stats][0][key_type] == "demoman":
 					blu_demo = np.append(blu_demo, sid3)
-					blu_demo_stats = np.append(blu_demo_stats, player[key_kills])
-					blu_demo_stats = np.append(blu_demo_stats, player[key_assists])
-					blu_demo_stats = np.append(blu_demo_stats, player[key_deaths])
-					blu_demo_stats = np.append(blu_demo_stats, player[key_dmg])
-					blu_demo_stats = np.append(blu_demo_stats, player[key_dt])
+					blu_demo_stats = _add_class_stats(blu_demo_stats, player, key_kills, key_assists,\
+						key_deaths, key_dmg, key_dt)
 				elif player[key_stats][0][key_type] == "medic":
 					# key names for each medic statistic
 					key_heals = "heal"
@@ -509,14 +493,8 @@ def fetch_log_data(log_ids):
 					# place them in the correct team / class list for sorting
 					blu_med = np.append(blu_med, sid3)
 					# add their stats to the correct team / class list for sorting
-					blu_med_stats = np.append(blu_med_stats, player[key_kills])
-					blu_med_stats = np.append(blu_med_stats, player[key_assists])
-					blu_med_stats = np.append(blu_med_stats, player[key_deaths])
-					blu_med_stats = np.append(blu_med_stats, player[key_dmg])
-					blu_med_stats = np.append(blu_med_stats, player[key_dt])
-					blu_med_stats = np.append(blu_med_stats, player[key_heals])
-					blu_med_stats = np.append(blu_med_stats, player[key_ubers])
-					blu_med_stats = np.append(blu_med_stats, player[key_drops])
+					blu_med_stats = _add_class_stats(blu_med_stats, player, key_kills, key_assists,\
+						key_deaths, key_dmg, key_dt, key_heals, key_ubers, key_drops)
 				# if the class isn't a meta sixes class
 				else:
 					print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
