@@ -13,11 +13,18 @@
 #
 ########################################################################################################################
 
+# used for splitting data into training and test sets
+from sklearn.model_selection import train_test_split
+# used for building the neural net(s)
+from tensorflow import keras
+
+def train_goblin():
+	pass
+
 # if this is being run as its own program to train the neural net(s)
 if __name__ == "__main__":
 	import sys
 	from collect_log_data import *
-	from tensorflow import keras
 
 	verbose = True
 	new_data = False

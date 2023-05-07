@@ -13,6 +13,9 @@
 #
 ########################################################################################################################
 
+def feed_goblin():
+	pass
+
 # if this is being run as its own program to make predictions with the neural net(s)
 if __name__ == "__main__":
 	import sys
