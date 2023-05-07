@@ -99,7 +99,10 @@ profile_log_url = "profile/"
 unverified_context = ssl._create_unverified_context()
 
 # reads from a file of steam profiles and returns the log ids of the last few pages of each of their logs
-def get_logs(pages):
+def get_logs(pages, verbose=True):
+	if verbose:
+		print("Getting logs from list of players...")
+
 	# if there isn't a folder for the data
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
@@ -123,7 +126,7 @@ def get_logs(pages):
 
 	# for each steam profile url that was read from the file
 	for profile in profiles:
-		# get the steam id of the profile
+		# Get the steam id of the profile
 
 		steam_id = None
 		# if the url already contains the steam id, then just get the id from the url
@@ -137,28 +140,29 @@ def get_logs(pages):
 			steam_user = steam.users.search_user(custom_url)
 			# if there was no match found or there was an error in retrieving the steam info of the user
 			if steam_user == "No match" or type(steam_user) is not dict:
-				print(f"User not found from {profile[0]}")
-				continue
+				print(f"ERROR: User not found from {profile[0]}")
+				exit(1)
 			# if the player key is missing from the steam user dict
 			if "player" not in steam_user:
-				print(f"'player' key missing from steam info retrieved from {profile[0]}")
-				continue
+				print(f"ERROR: 'player' key missing from steam info retrieved from {profile[0]}")
+				exit(1)
 			# if the steamid key is missing from the retrieved steam info
 			if "steamid" not in steam_user["player"]:
-				print(f"Steam ID missing from steam info retrieved from {profile[0]}")
-				continue
+				print(f"ERROR: Steam ID missing from steam info retrieved from {profile[0]}")
+				exit(1)
 			# get the steam id of the user
 			steam_id = steam_user["player"]["steamid"]
 		else:
-			print(f"Could not identify steam profile format from {profile[0]}")
-			continue
+			print(f"ERROR: Could not identify steam profile format from {profile[0]}")
+			exit(1)
 
 		# collect list of log ids from last few pages of player's logs.tf profile
 		for page in range(1, pages + 1):
 			response = urlopen(log_tf_url + profile_log_url + steam_id + f"?p={page}", context=unverified_context)
 			# if there aren't any pages left in the player's logs (defaults back to logs.tf home page)
 			if response.url == log_tf_url:
-				print(f"No more logs on page {page} for {profile[0]}")
+				if verbose:
+					print(f"No more logs on page {page} for {profile[0]}")
 				break
 
 			# create html parser to find log ids from web page
@@ -167,7 +171,8 @@ def get_logs(pages):
 			trs = soup.find_all("tr", id=True)
 			# if no <tr> elements were found, don't check for a next page
 			if len(trs) < 1:
-				print(f"No more logs on page {page} for {profile[0]}")
+				if verbose:
+					print(f"No more logs on page {page} for {profile[0]}")
 				break
 
 			# loop through each tr element to find all of the log ids
@@ -195,6 +200,9 @@ def get_logs(pages):
 	df_logs = pd.DataFrame(log_ids)
 	df_logs.to_csv(log_data_path, header=["Log ID"], index=False)
 
+	if verbose:
+		print(f"Stored list of {len(log_ids)} log ids to {log_data_path}")
+
 # returns an array of log ids that were retrieved from get_logs()
 def read_log_ids():
 	# if there isn't a folder for the data
@@ -208,8 +216,11 @@ def read_log_ids():
 	return np.array(pd.read_csv(log_data_path), dtype=str).flatten()
 
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
-# returns the number of valid logs that it stored data from
-def fetch_log_data(log_ids):
+# returns the number of valid logs that it stored data from, along with numpy arrays the data that was collected
+def fetch_log_data(log_ids, verbose=True):
+	if verbose:
+		print("Extracting log data and weeding out invalid logs...")
+
 	# array of ids of logs that were actually used
 	used_logs = np.array([], dtype=str)
 
@@ -239,70 +250,87 @@ def fetch_log_data(log_ids):
 
 		# make sure there is version data
 		if "version" not in data:
-			print(f"Log version missing from log {log_id}")
+			if verbose:
+				print(f"Log version missing from log {log_id}")
 			continue
 		# make sure there team data
 		if "teams" not in data:
-			print(f"Team data missing from log {log_id}")
+			if verbose:
+				print(f"Team data missing from log {log_id}")
 			continue
 		# make sure red and blu teams aren't missing
 		if "Red" not in data["teams"]:
-			print(f"Red team missing from log {log_id}")
+			if verbose:
+				print(f"Red team missing from log {log_id}")
 			continue
 		if "Blue" not in data["teams"]:
-			print(f"Blu team missing from log {log_id}")
+			if verbose:
+				print(f"Blu team missing from log {log_id}")
 			continue
 		# make sure scores aren't missing from red and blu teams
 		if "score" not in data["teams"]["Red"]:
-			print(f"Score missing from red team in log {log_id}")
+			if verbose:
+				print(f"Score missing from red team in log {log_id}")
 			continue
 		if "score" not in data["teams"]["Blue"]:
-			print(f"Score missing from blu team in log {log_id}")
+			if verbose:
+				print(f"Score missing from blu team in log {log_id}")
 			continue
 		# make sure there is player data
 		if "players" not in data:
-			print(f"Player data missing from log {log_id}")
+			if verbose:
+				print(f"Player data missing from log {log_id}")
 			continue
 		# make sure there is name data
 		if "names" not in data:
-			print(f"Names are missing from log {log_id}")
+			if verbose:
+				print(f"Names are missing from log {log_id}")
 			continue
 		# make sure there is extra info data
 		if "info" not in data:
-			print(f"Info field missing from log {log_id}")
+			if verbose:
+				print(f"Info field missing from log {log_id}")
 			continue
 		# make sure there is match length data
 		if "total_length" not in data["info"]:
-			print(f"Match length missing from log {log_id}")
+			if verbose:
+				print(f"Match length missing from log {log_id}")
 			continue
 		# make sure the map was recorded
 		if "map" not in data["info"]:
-			print(f"Map missing from log {log_id}")
+			if verbose:
+				print(f"Map missing from log {log_id}")
 			continue
 		# make sure there was a recorded date
 		if "date" not in data["info"]:
-			print(f"Date missing from log {log_id}")
+			if verbose:
+				print(f"Date missing from log {log_id}")
 			continue
 
 		# Validate and extract necessary data from log
 
 		# make sure log version is correct
 		if data["version"] != 3:
-			print(f"Log version is not 3 in log {log_id}")
+			if verbose:
+				print(f"Log version is not 3 in log {log_id}")
 			continue
 
 		# make sure scores are valid
 		if data["teams"]["Red"]["score"] > 5:
-			print(f"Red team score is too high (>5) in log {log_id}")
+			if verbose:
+				print(f"Red team score is too high (>5) in log {log_id}")
 			continue
 		if data["teams"]["Red"]["score"] < 0:
-			print(f"Red team score is too low (<0) in log {log_id}")
+			if verbose:
+				print(f"Red team score is too low (<0) in log {log_id}")
 			continue
 		if data["teams"]["Blue"]["score"] > 5:
-			print(f"Blu team score is too high (>5) in log {log_id}")
+			if verbose:
+				print(f"Blu team score is too high (>5) in log {log_id}")
 			continue
 		if data["teams"]["Blue"]["score"] < 0:
-			print(f"Blu team score is too low (<0) in log {log_id}")
+			if verbose:
+				print(f"Blu team score is too low (<0) in log {log_id}")
 			continue
 		# collect the scores of each team
 		score = np.array([data["teams"]["Red"]["score"], data["teams"]["Blue"]["score"]])
@@ -312,7 +340,8 @@ def fetch_log_data(log_ids):
 
 		# find out if map is koth or control points
 		if "_" not in data["info"]["map"]:
-			print(f"Gamemode not found from map name in log {log_id}")
+			if verbose:
+				print(f"Gamemode not found from map name in log {log_id}")
 			continue
 		# get the gamemode from the substring that comes before the first underscore in the map name
 		gamemode = np.array([data["info"]["map"][:data["info"]["map"].index("_")]])
@@ -324,7 +353,8 @@ def fetch_log_data(log_ids):
 		player_data = data["players"]
 		# make sure there are 12 players
 		if len(player_data) != 12:
-			print(f"Player count is not 12 in log {log_id}")
+			if verbose:
+				print(f"Player count is not 12 in log {log_id}")
 			continue
 
 		# adds player stats to numpy arrays
@@ -371,42 +401,50 @@ def fetch_log_data(log_ids):
 			key_dt = "dt"
 			# make sure the team value exists for this player
 			if key_team not in player:
-				print(f"Team info missing for player {sid3} in log {log_id}")
+				if verbose:
+					print(f"Team info missing for player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the class_stats value exists for this player
 			if key_stats not in player or len(player[key_stats]) < 1:
-				print(f"Class stats missing for player {sid3} in log {log_id}")
+				if verbose:
+					print(f"Class stats missing for player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the type of class the player played exists for this player
 			if key_type not in player[key_stats][0]:
-				print(f"Class type missing for player {sid3} in log {log_id}")
+				if verbose:
+					print(f"Class type missing for player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the kills were recorded
 			if key_kills not in player:
-				print(f"Kills missing from player {sid3} in log {log_id}")
+				if verbose:
+					print(f"Kills missing from player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the assists were recorded
 			if key_assists not in player:
-				print(f"Assists missing from player {sid3} in log {log_id}")
+				if verbose:
+					print(f"Assists missing from player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the deaths were recorded
 			if key_deaths not in player:
-				print(f"Deaths missing from player {sid3} in log {log_id}")
+				if verbose:
+					print(f"Deaths missing from player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the damage was recorded
 			if key_dmg not in player:
-				print(f"Damage missing from player {sid3} in log {log_id}")
+				if verbose:
+					print(f"Damage missing from player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the damage taken was recorded
 			if key_dt not in player:
-				print(f"Damage taken missing from player {sid3} in log {log_id}")
+				if verbose:
+					print(f"Damage taken missing from player {sid3} in log {log_id}")
 				error = True
 				break
 
@@ -434,15 +472,18 @@ def fetch_log_data(log_ids):
 					key_drops = "drops"
 					# make sure keys for medic stats exist for each class
 					if key_heals not in player:
-						print(f"Heals missing from from medic {sid3} in log {log_id}")
+						if verbose:
+							print(f"Heals missing from from medic {sid3} in log {log_id}")
 						error = True
 						break
 					if key_ubers not in player:
-						print(f"Ubers missing from medic {sid3} in log {log_id}")
+						if verbose:
+							print(f"Ubers missing from medic {sid3} in log {log_id}")
 						error = True
 						break
 					if key_drops not in player:
-						print(f"Drops missing from medic {sid3} in log {log_id}")
+						if verbose:
+							print(f"Drops missing from medic {sid3} in log {log_id}")
 						error = True
 						break
 					# place them in the correct team / class list for sorting
@@ -452,7 +493,8 @@ def fetch_log_data(log_ids):
 				    	key_deaths, key_dmg, key_dt, key_heals, key_ubers, key_drops)
 				# if the class isn't a meta sixes class
 				else:
-					print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
+					if verbose:
+						print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
 					error = True
 					break
 			# if the player was on the blu team
@@ -479,15 +521,18 @@ def fetch_log_data(log_ids):
 					key_drops = "drops"
 					# make sure keys for medic stats exist for each class
 					if key_heals not in player:
-						print(f"Heals missing from from medic {sid3} in log {log_id}")
+						if verbose:
+							print(f"Heals missing from from medic {sid3} in log {log_id}")
 						error = True
 						break
 					if key_ubers not in player:
-						print(f"Ubers missing from medic {sid3} in log {log_id}")
+						if verbose:
+							print(f"Ubers missing from medic {sid3} in log {log_id}")
 						error = True
 						break
 					if key_drops not in player:
-						print(f"Drops missing from medic {sid3} in log {log_id}")
+						if verbose:
+							print(f"Drops missing from medic {sid3} in log {log_id}")
 						error = True
 						break
 					# place them in the correct team / class list for sorting
@@ -497,12 +542,14 @@ def fetch_log_data(log_ids):
 						key_deaths, key_dmg, key_dt, key_heals, key_ubers, key_drops)
 				# if the class isn't a meta sixes class
 				else:
-					print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
+					if verbose:
+						print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
 					error = True
 					break
 			# if the team wasn't recognized
 			else:
-				print(f"Unknown team for player {sid3} in log {log_id}")
+				if verbose:
+					print(f"Unknown team for player {sid3} in log {log_id}")
 				error = True
 				break
 		
@@ -513,28 +560,36 @@ def fetch_log_data(log_ids):
 
 		# make sure there are the correct amount of players for each class on each team
 		if len(red_scouts) != 2:
-			print(f"Not 2 scouts on red team in log {log_id}")
+			if verbose:
+				print(f"Not 2 scouts on red team in log {log_id}")
 			continue
 		elif len(red_soldiers) != 2:
-			print(f"Not 2 soldiers on red team in log {log_id}")
+			if verbose:
+				print(f"Not 2 soldiers on red team in log {log_id}")
 			continue
 		elif len(red_demo) != 1:
-			print(f"Not 1 demo on red team in log {log_id}")
+			if verbose:
+				print(f"Not 1 demo on red team in log {log_id}")
 			continue
 		elif len(red_med) != 1:
-			print(f"Not 1 med on red team in log {log_id}")
+			if verbose:
+				print(f"Not 1 med on red team in log {log_id}")
 			continue
 		elif len(blu_scouts) != 2:
-			print(f"Not 2 scouts on blu team in log {log_id}")
+			if verbose:
+				print(f"Not 2 scouts on blu team in log {log_id}")
 			continue
 		elif len(blu_soldiers) != 2:
-			print(f"Not 2 soldiers on blu team in log {log_id}")
+			if verbose:
+				print(f"Not 2 soldiers on blu team in log {log_id}")
 			continue
 		elif len(blu_demo) != 1:
-			print(f"Not 1 demo on blu team in log {log_id}")
+			if verbose:
+				print(f"Not 1 demo on blu team in log {log_id}")
 			continue
 		elif len(blu_med) != 1:
-			print(f"Not 1 med on blu team in log {log_id}")
+			if verbose:
+				print(f"Not 1 med on blu team in log {log_id}")
 			continue
 
 		# combine all steam id 3s into one array
@@ -548,7 +603,8 @@ def fetch_log_data(log_ids):
 		player_names = data["names"]
 		# make sure there are 12 player names
 		if len(player_names) != 12:
-			print(f"There aren't 12 player names in log {log_id}")
+			if verbose:
+				print(f"There aren't 12 player names in log {log_id}")
 			continue
 
 		# flag to tell function to drop this log if there was en error encountered inside the loop
@@ -558,7 +614,8 @@ def fetch_log_data(log_ids):
 		for sid3 in player_sid3s:
 			# make sure all of the steam id 3s have a player name linked to them
 			if sid3 not in player_names:
-				print(f"Player {sid3} doesn't have a name in log {log_id}")
+				if verbose:
+					print(f"Player {sid3} doesn't have a name in log {log_id}")
 				error = True
 				break
 
@@ -587,6 +644,9 @@ def fetch_log_data(log_ids):
 		# output data
 		scores = np.vstack((scores, score))
 		stats = np.vstack((stats, match_stats))
+
+	if verbose:
+		print(f"Used {used_logs.size} logs. Storing data into csv files...")
 
 	# if there isn't already a folder for the data, create one
 	if not os.path.isdir(data_path):
@@ -649,38 +709,57 @@ def fetch_log_data(log_ids):
 		"Blu Medic Damage", "Blu Medic Damage Taken",\
 		"Blu Medic Heals", "Blu Medic Ubers", "Blu Medic Drops"])
 	
-	# return the number of valid logs that it stored data from
-	return used_logs.size
+	if verbose:
+		print("Data stored.")
 
-# gets raw log data from csv files and prepare it to be fed into the goblin
-def prepare_log_data():
+	# return the number of valid logs that it stored data from, along with all of the data collected
+	return used_logs.size, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats
+
+# prepares data to be fed into the goblin
+# reads data from csv files if data that was passed is none
+def prepare_log_data(players=None, gamemodes=None, maps=None, dates=None, weekdays=None, scores=None, stats=None, verbose=True):
 	# if there isn't a folder for the data
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
-	# if any of the data files are missing
-	if not os.path.isfile(player_data_path):
-		raise FileNotFoundError("Missing player data file")
-	if not os.path.isfile(gamemode_data_path):
-		raise FileNotFoundError("Missing gamemode data file")
-	if not os.path.isfile(maps_data_path):
-		raise FileNotFoundError("Missing map data file")
-	if not os.path.isfile(dates_data_path):
-		raise FileNotFoundError("Missing date data file")
-	if not os.path.isfile(weekdays_data_path):
-		raise FileNotFoundError("Missing weekday data file")
-	if not os.path.isfile(scores_data_path):
-		raise FileNotFoundError("Missing score data file")
 	
-	# read data from csv files and turn it into arrays
-	players = np.delete(np.array(pd.read_csv(player_data_path)), 0, 1)
-	gamemodes = np.delete(np.array(pd.read_csv(gamemode_data_path)), 0, 1)
-	maps = np.delete(np.array(pd.read_csv(maps_data_path)), 0, 1)
-	dates = np.delete(np.array(pd.read_csv(dates_data_path)), 0, 1)
-	weekdays = np.delete(np.array(pd.read_csv(weekdays_data_path)), 0, 1)
+	if verbose:
+		print("Recollecting data to prepare it...")
 
-	scores = np.delete(np.array(pd.read_csv(scores_data_path)), 0, 1)
+	# if not data was passed as a parameter, read data from csv files and turn it into arrays
+	if players is None:
+		# if any of the data files are missing
+		if not os.path.isfile(player_data_path):
+			raise FileNotFoundError("Missing player data file")
+		players = np.delete(np.array(pd.read_csv(player_data_path)), 0, 1)
+	if gamemodes is None:
+		if not os.path.isfile(gamemode_data_path):
+			raise FileNotFoundError("Missing gamemode data file")
+		gamemodes = np.delete(np.array(pd.read_csv(gamemode_data_path)), 0, 1)
+	if maps is None:
+		if not os.path.isfile(maps_data_path):
+			raise FileNotFoundError("Missing map data file")
+		maps = np.delete(np.array(pd.read_csv(maps_data_path)), 0, 1)
+	if dates is None:
+		if not os.path.isfile(dates_data_path):
+			raise FileNotFoundError("Missing date data file")
+		dates = np.delete(np.array(pd.read_csv(dates_data_path)), 0, 1)
+	if weekdays is None:
+		if not os.path.isfile(weekdays_data_path):
+			raise FileNotFoundError("Missing weekday data file")
+		weekdays = np.delete(np.array(pd.read_csv(weekdays_data_path)), 0, 1)
+	if scores is None:
+		if not os.path.isfile(scores_data_path):
+			raise FileNotFoundError("Missing score data file")
+		scores = np.delete(np.array(pd.read_csv(scores_data_path)), 0, 1)
+	if stats is None:
+		if not os.path.isfile(stats_data_path):
+			raise FileNotFoundError("Missing stats data file")
+		stats = np.delete(np.array(pd.read_csv(stats_data_path)), 0, 1)
 
-	# encode the categorical data with one hot encoding
+	# Encode the categorical data with one hot encoding
+
+	if verbose:
+		print("Preparing data to be fed into the goblin...")
 
 	# one hot encode players
 	classes = np.unique(players)
@@ -725,6 +804,9 @@ def prepare_log_data():
 	inputs = np.hstack((players_onehot, gamemodes_onehot, maps_onehot, dates.astype(float), months_onehot,\
 		days_onehot, weekdays_onehot))
 	
+	if verbose:
+		print("Data prepared for goblin feeding. Storing prepared data into csv files...")
+
 	# create dataframes for inputs and outputs
 	df_inputs = pd.DataFrame(inputs)
 	df_outputs = pd.DataFrame(scores_onehot)
@@ -733,8 +815,16 @@ def prepare_log_data():
 	df_inputs.to_csv(inputs_data_path, header=False, index=False)
 	df_outputs.to_csv(outputs_data_path, header=False, index=False)
 
+	if verbose:
+		print("Prepared data stored.")
+	
+	return inputs, scores_onehot, stats
+
 # gets the inputs and outputs
-def read_log_data(with_stats=False):
+def read_log_data(with_stats=False, verbose=True):
+	if verbose:
+		print("Reading prepared data from csv files...")
+
 	# if there isn't a folder for the data
 	if not os.path.isdir(data_path):
 		raise FileNotFoundError("Missing data folder.")
@@ -753,7 +843,14 @@ def read_log_data(with_stats=False):
 	if with_stats:
 		# get stats from csv file
 		stats = np.array(pd.read_csv(stats_data_path))
+
+		if verbose:
+			print("Prepared data collected")
+
 		return inputs, outputs, stats
 	# if stats were not requested
 	else:
+		if verbose:
+			print("Prepared data collected")
+
 		return inputs, outputs
