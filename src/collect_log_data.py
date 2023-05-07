@@ -99,16 +99,20 @@ profile_log_url = "profile/"
 unverified_context = ssl._create_unverified_context()
 
 # reads from a file of steam profiles and returns the log ids of the last few pages of each of their logs
+# returns an array of the log ids
 def get_logs(pages, verbose=True):
 	if verbose:
 		print("Getting logs from list of players...")
 
 	# if there isn't a folder for the data
 	if not os.path.isdir(data_path):
-		raise FileNotFoundError("Missing data folder.")
+		print("ERROR: Missing data folder.")
+		exit(1)
 	# if any of the data files are missing
 	if not os.path.isfile(profile_data_path):
-		raise FileNotFoundError("Missing steam profile data file")
+		print("ERROR: Missing steam profile data file.\
+		Must make list of steam profiles to read called 'profiles.csv' in the 'data' folder.")
+		exit(1)
 	
 	# read list of steam profile urls
 	profiles = np.array(pd.read_csv(profile_data_path, header=None))
@@ -202,6 +206,9 @@ def get_logs(pages, verbose=True):
 
 	if verbose:
 		print(f"Stored list of {len(log_ids)} log ids to {log_data_path}")
+	
+	# return the log ids
+	return log_ids
 
 # returns an array of log ids that were retrieved from get_logs()
 def read_log_ids():
@@ -854,3 +861,53 @@ def read_log_data(with_stats=False, verbose=True):
 			print("Prepared data collected")
 
 		return inputs, outputs
+
+# if this is the main program being ran
+if __name__ == "__main__":
+	import sys
+
+	# first argument must be a number telling how many pages to read from each player's log profile
+	if len(sys.argv) < 2:
+		print("ERROR: No arguments. Must give number of pages to read from each player's log profile.")
+		exit(2)
+	
+	# make sure the argument is an integer
+	try:
+		pages = int(sys.argv[1])
+	except ValueError:
+		print("ERROR: First argument must be a positive integer.")
+		exit(2)
+	
+	# make sure the argument is positive
+	if pages < 1:
+		print("ERROR: First argument must be a positive integer.")
+		exit(2)
+	
+	verbose = True
+	# user can provide argument to not print any messages during execution
+	if len(sys.argv) > 2 and (sys.argv[2] == "-s" or sys.argv[2] == "--silent"):
+		verbose = False
+	else:
+		print("Second argument not recognized.")
+		exit(2)
+
+	delimiter = "-" * 50
+
+	# get fresh set of logs and data
+	log_ids = get_logs(pages, verbose=verbose)
+	if verbose:
+		print(delimiter)
+	num_logs, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats = fetch_log_data(log_ids, verbose=verbose)
+	if verbose:
+		print(delimiter)
+	inputs, targets, stats = prepare_log_data(\
+		players=players, gamemodes=gamemodes, maps=maps, dates=dates, weekdays=weekdays, scores=scores, stats=stats,\
+		verbose=verbose)
+	if verbose:
+		print(delimiter)
+		print("Inputs:")
+		print(inputs)
+		print(inputs.shape)
+		print("Targets:")
+		print(targets)
+		print(targets.shape)

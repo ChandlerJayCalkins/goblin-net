@@ -17,8 +17,7 @@ from collect_log_data import *
 
 delimiter = "-" * 50
 
-get_logs(1)
-log_ids = read_log_ids()
+log_ids = get_logs(1)
 print(delimiter)
 num_logs, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats = fetch_log_data(log_ids)
 print(delimiter)
