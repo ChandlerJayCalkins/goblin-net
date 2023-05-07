@@ -265,7 +265,7 @@ def read_log_ids():
 # returns the number of valid logs that it stored data from, along with numpy arrays the data that was collected
 def fetch_log_data(log_ids, verbose=True):
 	if verbose:
-		print("\nExtracting log data and weeding out invalid logs...")
+		print("Extracting log data and weeding out invalid logs...")
 
 	# array of ids of logs that were actually used
 	used_logs = np.array([], dtype=str)
@@ -289,7 +289,7 @@ def fetch_log_data(log_ids, verbose=True):
 	for log_id in log_ids:
 		counter += 1
 		if verbose:
-			print(f"\r[{counter}/{log_count}]...", end="")
+			print(f"\r[{counter}/{log_count}]: ", end="")
 		# Read json data of log
 
 		# concatenate to form json url and original log page url
@@ -304,7 +304,7 @@ def fetch_log_data(log_ids, verbose=True):
 				response = urlopen(log_json_url, context=unverified_context)
 				response_success = True
 			except:
-				print(f"\nHTTP Error from log id {log_id}, trying again...")
+				print(f"HTTP Error from log id {log_id}, trying again...")
 		
 		# turn data from json file into dictionary
 		data = json.loads(response.read())
@@ -314,60 +314,60 @@ def fetch_log_data(log_ids, verbose=True):
 		# make sure there is version data
 		if "version" not in data:
 			if verbose:
-				print(f"\nLog version missing from log {log_id}")
+				print(f"Log version missing from log {log_id}")
 			continue
 		# make sure there team data
 		if "teams" not in data:
 			if verbose:
-				print(f"\nTeam data missing from log {log_id}")
+				print(f"Team data missing from log {log_id}")
 			continue
 		# make sure red and blu teams aren't missing
 		if "Red" not in data["teams"]:
 			if verbose:
-				print(f"\nRed team missing from log {log_id}")
+				print(f"Red team missing from log {log_id}")
 			continue
 		if "Blue" not in data["teams"]:
 			if verbose:
-				print(f"\nBlu team missing from log {log_id}")
+				print(f"Blu team missing from log {log_id}")
 			continue
 		# make sure scores aren't missing from red and blu teams
 		if "score" not in data["teams"]["Red"]:
 			if verbose:
-				print(f"\nScore missing from red team in log {log_id}")
+				print(f"Score missing from red team in log {log_id}")
 			continue
 		if "score" not in data["teams"]["Blue"]:
 			if verbose:
-				print(f"\nScore missing from blu team in log {log_id}")
+				print(f"Score missing from blu team in log {log_id}")
 			continue
 		# make sure there is player data
 		if "players" not in data:
 			if verbose:
-				print(f"\nPlayer data missing from log {log_id}")
+				print(f"Player data missing from log {log_id}")
 			continue
 		# make sure there is name data
 		if "names" not in data:
 			if verbose:
-				print(f"\nNames are missing from log {log_id}")
+				print(f"Names are missing from log {log_id}")
 			continue
 		# make sure there is extra info data
 		if "info" not in data:
 			if verbose:
-				print(f"\nInfo field missing from log {log_id}")
+				print(f"Info field missing from log {log_id}")
 			continue
 		# make sure there is match length data
 		if "total_length" not in data["info"]:
 			if verbose:
-				print(f"\nMatch length missing from log {log_id}")
+				print(f"Match length missing from log {log_id}")
 			continue
 		# make sure the map was recorded
 		if "map" not in data["info"]:
 			if verbose:
-				print(f"\nMap missing from log {log_id}")
+				print(f"Map missing from log {log_id}")
 			continue
 		# make sure there was a recorded date
 		if "date" not in data["info"]:
 			if verbose:
-				print(f"\nDate missing from log {log_id}")
+				print(f"Date missing from log {log_id}")
 			continue
 
 		# Validate and extract necessary data from log
@@ -375,25 +375,25 @@ def fetch_log_data(log_ids, verbose=True):
 		# make sure log version is correct
 		if data["version"] != 3:
 			if verbose:
-				print(f"\nLog version is not 3 in log {log_id}")
+				print(f"Log version is not 3 in log {log_id}")
 			continue
 
 		# make sure scores are valid
 		if data["teams"]["Red"]["score"] > 5:
 			if verbose:
-				print(f"\nRed team score is too high (>5) in log {log_id}")
+				print(f"Red team score is too high (>5) in log {log_id}")
 			continue
 		if data["teams"]["Red"]["score"] < 0:
 			if verbose:
-				print(f"\nRed team score is too low (<0) in log {log_id}")
+				print(f"Red team score is too low (<0) in log {log_id}")
 			continue
 		if data["teams"]["Blue"]["score"] > 5:
 			if verbose:
-				print(f"\nBlu team score is too high (>5) in log {log_id}")
+				print(f"Blu team score is too high (>5) in log {log_id}")
 			continue
 		if data["teams"]["Blue"]["score"] < 0:
 			if verbose:
-				print(f"\nBlu team score is too low (<0) in log {log_id}")
+				print(f"Blu team score is too low (<0) in log {log_id}")
 			continue
 		# collect the scores of each team
 		score = np.array([data["teams"]["Red"]["score"], data["teams"]["Blue"]["score"]])
@@ -404,7 +404,7 @@ def fetch_log_data(log_ids, verbose=True):
 		# find out if map is koth or control points
 		if "_" not in data["info"]["map"]:
 			if verbose:
-				print(f"\nGamemode not found from map name in log {log_id}")
+				print(f"Gamemode not found from map name in log {log_id}")
 			continue
 		# get the gamemode from the substring that comes before the first underscore in the map name
 		gamemode = np.array([data["info"]["map"][:data["info"]["map"].index("_")]])
@@ -417,7 +417,7 @@ def fetch_log_data(log_ids, verbose=True):
 		# make sure there are 12 players
 		if len(player_data) != 12:
 			if verbose:
-				print(f"\nPlayer count is not 12 in log {log_id}")
+				print(f"Player count is not 12 in log {log_id}")
 			continue
 
 		# adds player stats to numpy arrays
@@ -465,49 +465,49 @@ def fetch_log_data(log_ids, verbose=True):
 			# make sure the team value exists for this player
 			if key_team not in player:
 				if verbose:
-					print(f"\nTeam info missing for player {sid3} in log {log_id}")
+					print(f"Team info missing for player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the class_stats value exists for this player
 			if key_stats not in player or len(player[key_stats]) < 1:
 				if verbose:
-					print(f"\nClass stats missing for player {sid3} in log {log_id}")
+					print(f"Class stats missing for player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the type of class the player played exists for this player
 			if key_type not in player[key_stats][0]:
 				if verbose:
-					print(f"\nClass type missing for player {sid3} in log {log_id}")
+					print(f"Class type missing for player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the kills were recorded
 			if key_kills not in player:
 				if verbose:
-					print(f"\nKills missing from player {sid3} in log {log_id}")
+					print(f"Kills missing from player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the assists were recorded
 			if key_assists not in player:
 				if verbose:
-					print(f"\nAssists missing from player {sid3} in log {log_id}")
+					print(f"Assists missing from player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the deaths were recorded
 			if key_deaths not in player:
 				if verbose:
-					print(f"\nDeaths missing from player {sid3} in log {log_id}")
+					print(f"Deaths missing from player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the damage was recorded
 			if key_dmg not in player:
 				if verbose:
-					print(f"\nDamage missing from player {sid3} in log {log_id}")
+					print(f"Damage missing from player {sid3} in log {log_id}")
 				error = True
 				break
 			# make sure the damage taken was recorded
 			if key_dt not in player:
 				if verbose:
-					print(f"\nDamage taken missing from player {sid3} in log {log_id}")
+					print(f"Damage taken missing from player {sid3} in log {log_id}")
 				error = True
 				break
 
@@ -536,17 +536,17 @@ def fetch_log_data(log_ids, verbose=True):
 					# make sure keys for medic stats exist for each class
 					if key_heals not in player:
 						if verbose:
-							print(f"\nHeals missing from from medic {sid3} in log {log_id}")
+							print(f"Heals missing from from medic {sid3} in log {log_id}")
 						error = True
 						break
 					if key_ubers not in player:
 						if verbose:
-							print(f"\nUbers missing from medic {sid3} in log {log_id}")
+							print(f"Ubers missing from medic {sid3} in log {log_id}")
 						error = True
 						break
 					if key_drops not in player:
 						if verbose:
-							print(f"\nDrops missing from medic {sid3} in log {log_id}")
+							print(f"Drops missing from medic {sid3} in log {log_id}")
 						error = True
 						break
 					# place them in the correct team / class list for sorting
@@ -557,7 +557,7 @@ def fetch_log_data(log_ids, verbose=True):
 				# if the class isn't a meta sixes class
 				else:
 					if verbose:
-						print(f"\nPrimary class is non-sixes meta for player {sid3} in log {log_id}")
+						print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
 					error = True
 					break
 			# if the player was on the blu team
@@ -585,17 +585,17 @@ def fetch_log_data(log_ids, verbose=True):
 					# make sure keys for medic stats exist for each class
 					if key_heals not in player:
 						if verbose:
-							print(f"\nHeals missing from from medic {sid3} in log {log_id}")
+							print(f"Heals missing from from medic {sid3} in log {log_id}")
 						error = True
 						break
 					if key_ubers not in player:
 						if verbose:
-							print(f"\nUbers missing from medic {sid3} in log {log_id}")
+							print(f"Ubers missing from medic {sid3} in log {log_id}")
 						error = True
 						break
 					if key_drops not in player:
 						if verbose:
-							print(f"\nDrops missing from medic {sid3} in log {log_id}")
+							print(f"Drops missing from medic {sid3} in log {log_id}")
 						error = True
 						break
 					# place them in the correct team / class list for sorting
@@ -606,13 +606,13 @@ def fetch_log_data(log_ids, verbose=True):
 				# if the class isn't a meta sixes class
 				else:
 					if verbose:
-						print(f"\nPrimary class is non-sixes meta for player {sid3} in log {log_id}")
+						print(f"Primary class is non-sixes meta for player {sid3} in log {log_id}")
 					error = True
 					break
 			# if the team wasn't recognized
 			else:
 				if verbose:
-					print(f"\nUnknown team for player {sid3} in log {log_id}")
+					print(f"Unknown team for player {sid3} in log {log_id}")
 				error = True
 				break
 		
@@ -624,35 +624,35 @@ def fetch_log_data(log_ids, verbose=True):
 		# make sure there are the correct amount of players for each class on each team
 		if len(red_scouts) != 2:
 			if verbose:
-				print(f"\nNot 2 scouts on red team in log {log_id}")
+				print(f"Not 2 scouts on red team in log {log_id}")
 			continue
 		elif len(red_soldiers) != 2:
 			if verbose:
-				print(f"\nNot 2 soldiers on red team in log {log_id}")
+				print(f"Not 2 soldiers on red team in log {log_id}")
 			continue
 		elif len(red_demo) != 1:
 			if verbose:
-				print(f"\nNot 1 demo on red team in log {log_id}")
+				print(f"Not 1 demo on red team in log {log_id}")
 			continue
 		elif len(red_med) != 1:
 			if verbose:
-				print(f"\nNot 1 med on red team in log {log_id}")
+				print(f"Not 1 med on red team in log {log_id}")
 			continue
 		elif len(blu_scouts) != 2:
 			if verbose:
-				print(f"\nNot 2 scouts on blu team in log {log_id}")
+				print(f"Not 2 scouts on blu team in log {log_id}")
 			continue
 		elif len(blu_soldiers) != 2:
 			if verbose:
-				print(f"\nNot 2 soldiers on blu team in log {log_id}")
+				print(f"Not 2 soldiers on blu team in log {log_id}")
 			continue
 		elif len(blu_demo) != 1:
 			if verbose:
-				print(f"\nNot 1 demo on blu team in log {log_id}")
+				print(f"Not 1 demo on blu team in log {log_id}")
 			continue
 		elif len(blu_med) != 1:
 			if verbose:
-				print(f"\nNot 1 med on blu team in log {log_id}")
+				print(f"Not 1 med on blu team in log {log_id}")
 			continue
 
 		# combine all steam id 3s into one array
@@ -667,7 +667,7 @@ def fetch_log_data(log_ids, verbose=True):
 		# make sure there are 12 player names
 		if len(player_names) != 12:
 			if verbose:
-				print(f"\nThere aren't 12 player names in log {log_id}")
+				print(f"There aren't 12 player names in log {log_id}")
 			continue
 
 		# flag to tell function to drop this log if there was en error encountered inside the loop
@@ -678,7 +678,7 @@ def fetch_log_data(log_ids, verbose=True):
 			# make sure all of the steam id 3s have a player name linked to them
 			if sid3 not in player_names:
 				if verbose:
-					print(f"\nPlayer {sid3} doesn't have a name in log {log_id}")
+					print(f"Player {sid3} doesn't have a name in log {log_id}")
 				error = True
 				break
 
