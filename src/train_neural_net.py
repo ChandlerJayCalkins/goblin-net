@@ -16,6 +16,7 @@
 # if this is being run as its own program to train the neural net(s)
 if __name__ == "__main__":
 	import sys
+	from collect_log_data import *
 
 	verbose = True
 	new_data = False
@@ -51,11 +52,10 @@ if __name__ == "__main__":
 
 		i += 1
 	
+	delimiter = "-" * 50
+
 	# if new data was requested with an argument
 	if new_data:
-		from collect_log_data import *
-
-		delimiter = "-" * 50
 
 		# get a fresh set of logs and data
 		log_ids = get_logs(pages, verbose=verbose)
