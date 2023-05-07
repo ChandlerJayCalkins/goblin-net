@@ -148,10 +148,12 @@ def get_logs(pages, verbose=True):
 	# array of all of the log ids
 	log_ids = np.array([], dtype=str)
 	# counter to keep track of how many profiles have been read
-	counter = 1
+	counter = 0
 
 	# for each steam profile url that was read from the file
 	for profile in profiles:
+		counter += 1
+		print()
 		# Get the steam id of the profile
 
 		steam_id = None
@@ -229,9 +231,6 @@ def get_logs(pages, verbose=True):
 				log_id = id[id_index:]
 				# append the log id to the array of log ids
 				log_ids = np.append(log_ids, log_id)
-		
-		counter += 1
-		print()
 	
 	# make sure there are no duplicate logs
 	log_ids = np.unique(log_ids)
@@ -285,9 +284,10 @@ def fetch_log_data(log_ids, verbose=True):
 	# number of logs to check
 	log_count = len(log_ids)
 	# counter for how many logs have been checked
-	counter = 1
+	counter = 0
 	# collect data from each log
 	for log_id in log_ids:
+		counter += 1
 		if verbose:
 			print(f"\r[{counter}/{log_count}]...", end="")
 		# Read json data of log
@@ -707,8 +707,6 @@ def fetch_log_data(log_ids, verbose=True):
 		# output data
 		scores = np.vstack((scores, score))
 		stats = np.vstack((stats, match_stats))
-
-		counter += 1
 
 	if verbose:
 		print(f"\nUsed {used_logs.size} logs. Storing data into csv files...")
