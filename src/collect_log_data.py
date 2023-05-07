@@ -3,9 +3,9 @@
 #
 # Goblin Net: Neural Networks that Predict the Outcome of competitive Team Fortress 2 Matches
 #
-# get_log_data
+# collect_log_data
 #
-# Module for getting data from logs.tf logs and preparing it to be fed into the goblin
+# Module for collecting data from logs.tf logs and preparing it to be fed into the goblin
 #
 # Authors / Contributors:
 # Chandler Calkins
