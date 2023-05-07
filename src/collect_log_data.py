@@ -21,7 +21,7 @@ from decouple import config
 # pip install beautifulsoup4 / conda install beautifulsoup4
 from bs4 import BeautifulSoup
 # used for getting data from web pages
-from urllib.request import urlopen
+import urllib
 # used for getting around needing to verify logs.tf's ssl certificate to get data from the website
 import ssl
 # used for getting json data from logs.tf and turning into a python dictionary
@@ -187,10 +187,12 @@ def get_logs(pages, verbose=True):
 			# in case requesting http response fails on first try, loop until request succeeds
 			while not response_success:
 				try:
-					response = urlopen(log_tf_url + profile_log_url + steam_id + f"?p={page}", context=unverified_context)
+					response = urllib.request.urlopen(log_tf_url + profile_log_url + steam_id + f"?p={page}",\
+				    	context=unverified_context)
 					response_success = True
 				except urllib.error.HTTPError:
-					print(f"HTTP Error from log id {log_id}, trying again...")
+					print(f"HTTP Error from log profile page {log_tf_url}{profile_log_url}{steam_id}?p={page},\
+						trying again...")
 
 			# if there aren't any pages left in the player's logs (defaults back to logs.tf home page)
 			if response.url == log_tf_url:
@@ -284,7 +286,7 @@ def fetch_log_data(log_ids, verbose=True):
 		# in case requesting http response fails on first try, loop until request succeeds
 		while not response_success:
 			try:
-				response = urlopen(log_json_url, context=unverified_context)
+				response = urllib.request.urlopen(log_json_url, context=unverified_context)
 				response_success = True
 			except urllib.error.HTTPError:
 				print(f"HTTP Error from log id {log_id}, trying again...")
