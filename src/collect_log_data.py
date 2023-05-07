@@ -118,7 +118,7 @@ def get_logs(pages, verbose=True):
 		exit(1)
 	
 	# read list of steam profile urls
-	profiles = np.array(pd.read_csv(profile_data_path, header=None))
+	profiles = np.unique(np.array(pd.read_csv(profile_data_path, header=None)))
 	# retrive steam api key to connect to steam api
 	# make sure to create a file called ".env" and put it in the root directory of this repo,
 	# and in that file put "STEAM_API_KEY=*your steam api key*"
