@@ -16,6 +16,8 @@
 # if this is being run as its own program to make predictions with the neural net(s)
 if __name__ == "__main__":
 	import sys
+	from collect_log_data import *
+	from train_neural_net import *
 
 	verbose = True
 	new_data = False
@@ -59,7 +61,6 @@ if __name__ == "__main__":
 
 	# if new data was requested with an argument
 	if new_data:
-		from collect_log_data import *
 
 		# get a fresh set of logs and data
 		log_ids = get_logs(pages, verbose=verbose)
@@ -82,7 +83,6 @@ if __name__ == "__main__":
 	
 	# if training a new neural network was requested
 	if train:
-		from train_neural_net import *
 
 		# if fresh data wasn't requested and is already loaded, load data from csv files
 		if not new_data:

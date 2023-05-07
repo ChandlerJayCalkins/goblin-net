@@ -21,3 +21,5 @@ Neural Network(s) that predicts the outcomes of competitive Team Fortress 2 Sixe
 	- `pip install beautifulsoup4`
 - Steam API
 	- `pip install python-steam-api`
+- Tensorflow
+	- `pip install tensorflow`

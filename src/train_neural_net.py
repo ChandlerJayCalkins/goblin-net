@@ -17,6 +17,7 @@
 if __name__ == "__main__":
 	import sys
 	from collect_log_data import *
+	from tensorflow import keras
 
 	verbose = True
 	new_data = False
