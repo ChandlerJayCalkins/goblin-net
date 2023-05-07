@@ -1,6 +1,9 @@
 # goblin-net
 Neural Network(s) that predicts the outcomes of competitive Team Fortress 2 Sixes matches.
 
+## Usage
+- TODO
+
 ## Setup
 - Create a folder called `data` in the root directory of this repository.
 	- This will be where you put the `players.csv` file of players for the neural network to train on the logs of.
