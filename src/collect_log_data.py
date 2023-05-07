@@ -904,11 +904,12 @@ if __name__ == "__main__":
 	
 	verbose = True
 	# user can provide argument to not print any messages during execution
-	if len(sys.argv) > 2 and (sys.argv[2] == "-s" or sys.argv[2] == "--silent"):
-		verbose = False
-	else:
-		print("Second argument not recognized.")
-		exit(2)
+	if len(sys.argv) > 2:
+		if sys.argv[2] == "-s" or sys.argv[2] == "--silent":
+			verbose = False
+		else:
+			print("Second argument not recognized.")
+			exit(2)
 
 	delimiter = "-" * 50
 
