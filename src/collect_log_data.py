@@ -118,7 +118,13 @@ def get_logs(pages, verbose=True):
 		exit(1)
 	
 	# read list of steam profile urls
-	profiles = np.unique(np.array(pd.read_csv(profile_data_path, header=None)))
+	try:
+		profiles = np.unique(np.array(pd.read_csv(profile_data_path, header=None)))
+	# if there aren't any profiles in the data file
+	except pd.errors.EmptyDataError:
+		print("ERROR: Empty profile data file. Be sure to put a list of Steam profile links in data/profiles.csv")
+		exit(1)
+
 	# retrive steam api key to connect to steam api
 	# make sure to create a file called ".env" and put it in the root directory of this repo,
 	# and in that file put "STEAM_API_KEY=*your steam api key*"
@@ -132,7 +138,8 @@ def get_logs(pages, verbose=True):
 	# connect to steam api
 	steam = Steam(steam_api_key)
 	# prefix for steam url
-	steam_prefix = "https://steamcommunity.com/"
+	https_steam_prefix = "https://steamcommunity.com/"
+	http_steam_prefix = "http://steamcommunity.com/"
 
 	# array of all of the log ids
 	log_ids = np.array([], dtype=str)
@@ -143,30 +150,30 @@ def get_logs(pages, verbose=True):
 
 		steam_id = None
 		# if the url already contains the steam id, then just get the id from the url
-		if profile[0].startswith(steam_prefix + "profiles/"):
-			steam_id = profile[0][36:]
+		if profile.startswith(https_steam_prefix + "profiles/") or profile.startswith(http_steam_prefix + "profiles/"):
+			steam_id = profile[36:]
 		# if this is a custom url
-		elif profile[0].startswith(steam_prefix + "id/"):
+		elif profile.startswith(https_steam_prefix + "id/") or profile.startswith(http_steam_prefix + "id/"):
 			# get the name from the custom url
-			custom_url = profile[0][30:-1]
+			custom_url = profile[30:-1]
 			# get user info from steam api
 			steam_user = steam.users.search_user(custom_url)
 			# if there was no match found or there was an error in retrieving the steam info of the user
 			if steam_user == "No match" or type(steam_user) is not dict:
-				print(f"ERROR: User not found from {profile[0]}")
+				print(f"ERROR: User not found from {profile}")
 				exit(1)
 			# if the player key is missing from the steam user dict
 			if "player" not in steam_user:
-				print(f"ERROR: 'player' key missing from steam info retrieved from {profile[0]}")
+				print(f"ERROR: 'player' key missing from steam info retrieved from {profile}")
 				exit(1)
 			# if the steamid key is missing from the retrieved steam info
 			if "steamid" not in steam_user["player"]:
-				print(f"ERROR: Steam ID missing from steam info retrieved from {profile[0]}")
+				print(f"ERROR: Steam ID missing from steam info retrieved from {profile}")
 				exit(1)
 			# get the steam id of the user
 			steam_id = steam_user["player"]["steamid"]
 		else:
-			print(f"ERROR: Could not identify steam profile format from {profile[0]}")
+			print(f"ERROR: Could not identify steam profile format from {profile}")
 			exit(1)
 
 		# collect list of log ids from last few pages of player's logs.tf profile
@@ -175,7 +182,7 @@ def get_logs(pages, verbose=True):
 			# if there aren't any pages left in the player's logs (defaults back to logs.tf home page)
 			if response.url == log_tf_url:
 				if verbose:
-					print(f"No more logs on page {page} for {profile[0]}")
+					print(f"No more logs on page {page} for {profile}")
 				break
 
 			# create html parser to find log ids from web page
@@ -185,7 +192,7 @@ def get_logs(pages, verbose=True):
 			# if no <tr> elements were found, don't check for a next page
 			if len(trs) < 1:
 				if verbose:
-					print(f"No more logs on page {page} for {profile[0]}")
+					print(f"No more logs on page {page} for {profile}")
 				break
 
 			# loop through each tr element to find all of the log ids
