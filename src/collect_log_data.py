@@ -124,6 +124,9 @@ def get_logs(pages, verbose=True):
 	except pd.errors.EmptyDataError:
 		print("ERROR: Empty profile data file. Be sure to put a list of Steam profile links in data/profiles.csv")
 		exit(1)
+	
+	if verbose:
+		print(f"Collected {len(profiles)} Steam profiles...")
 
 	# retrive steam api key to connect to steam api
 	# make sure to create a file called ".env" and put it in the root directory of this repo,
