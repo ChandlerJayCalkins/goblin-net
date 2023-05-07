@@ -3,9 +3,9 @@
 #
 # Goblin Net: Neural Networks that Predict the Outcome of competitive Team Fortress 2 Matches
 #
-# train_neural_net
+# goblin
 #
-# Module for training and testing the neural network
+# Module for making predictions on TF2 matches
 #
 # Authors / Contributors:
 # Chandler Calkins
@@ -13,13 +13,14 @@
 #
 ########################################################################################################################
 
-# if this is being run as its own program to train the neural net(s)
+# if this is being run as its own program to make predictions with the neural net(s)
 if __name__ == "__main__":
 	import sys
 
 	verbose = True
 	new_data = False
 	pages = 0
+	train = False
 
 	# loop through each argument
 	i = 1
@@ -44,6 +45,9 @@ if __name__ == "__main__":
 			if pages < 1:
 				print(f"ERROR: {sys.arv[i-1]} requires a positive integer after it.")
 				exit(2)
+		# argument to train a new neural network
+		elif sys.argv[i] == "-t" or sys.argv[i] == "--train":
+			train == True
 		# if the argument isn't recognized
 		else:
 			print(f"ERROR: Argument {i} not recognized: {sys.argv[i]}")
@@ -67,15 +71,27 @@ if __name__ == "__main__":
 		inputs, targets, stats = prepare_log_data(\
 			players=players, gamemodes=gamemodes, maps=maps, dates=dates, weekdays=weekdays, scores=scores, stats=stats,\
 			verbose=verbose)
-	# if new data was not requested, just fetch the current data from the data file
-	else:
-		inputs, targets = read_log_data(verbose=verbose)
+		if verbose:
+			print(delimiter)
+			print("Inputs:")
+			print(inputs)
+			print(inputs.shape)
+			print("Targets:")
+			print(targets)
+			print(targets.shape)
 	
-	if verbose:
-		print(delimiter)
-		print("Inputs:")
-		print(inputs)
-		print(inputs.shape)
-		print("Targets:")
-		print(targets)
-		print(targets.shape)
+	# if training a new neural network was requested
+	if train:
+		from train_neural_net import *
+
+		# if fresh data wasn't requested and is already loaded, load data from csv files
+		if not new_data:
+			inputs, targets = read_log_data(verbose=verbose)
+			if verbose:
+				print(delimiter)
+				print("Inputs:")
+				print(inputs)
+				print(inputs.shape)
+				print("Targets:")
+				print(targets)
+				print(targets.shape)

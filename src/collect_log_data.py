@@ -104,6 +104,9 @@ def get_logs(pages, verbose=True):
 	if verbose:
 		print("Getting logs from list of players...")
 
+	# if pages isn't valid
+	if type(pages) is not int or pages < 1:
+		raise ValueError("Pages parameter must be a positive integer.")
 	# if there isn't a folder for the data
 	if not os.path.isdir(data_path):
 		print("ERROR: Missing data folder.")
@@ -116,11 +119,17 @@ def get_logs(pages, verbose=True):
 	
 	# read list of steam profile urls
 	profiles = np.array(pd.read_csv(profile_data_path, header=None))
-	# connect to steam api with steam key
+	# retrive steam api key to connect to steam api
 	# make sure to create a file called ".env" and put it in the root directory of this repo,
 	# and in that file put "STEAM_API_KEY=*your steam api key*"
 	# you can get a steam api key from https://steamcommunity.com/dev/apikey
-	steam_api_key = config("STEAM_API_KEY")
+	try:
+		steam_api_key = config("STEAM_API_KEY")
+	except:
+		print("No Steam API key was found. Make a .env file and put yours in there in the right format. \
+			You can get a person Steam API key from https://steamcommunity.com/dev/apikey.")
+		exit(1)
+	# connect to steam api
 	steam = Steam(steam_api_key)
 	# prefix for steam url
 	steam_prefix = "https://steamcommunity.com/"
@@ -862,7 +871,7 @@ def read_log_data(with_stats=False, verbose=True):
 
 		return inputs, outputs
 
-# if this is the main program being ran
+# if this is being run as its own program to collect data
 if __name__ == "__main__":
 	import sys
 
@@ -893,7 +902,7 @@ if __name__ == "__main__":
 
 	delimiter = "-" * 50
 
-	# get fresh set of logs and data
+	# get a fresh set of logs and data
 	log_ids = get_logs(pages, verbose=verbose)
 	if verbose:
 		print(delimiter)
