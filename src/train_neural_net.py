@@ -19,10 +19,21 @@ from sklearn.model_selection import train_test_split
 from tensorflow import keras
 # used for iterating through multiple lists at once
 import itertools
+# used for making sure files and folders exist
+import os
+
+# path to where neural network data is stored
+nn_path = "../nn"
+# file extension for neural network saves
+nn_file_ext = ".json"
+# file extension for nn weight saves
+weight_file_ext = ".h5"
+# file extension for nn training and test accuracy saves
+acc_file_ext = ".acc"
 
 # creates neural network(s) for predicting tf2 matches, trains it, tests it (optional), then stores it in a json file
 def train_goblin(inputs, score_targets, stat_targets=None, score_nodes=None, score_activations=None, score_loss = None,\
-	score_optimizer=None, file_name="goblin", test=True, verbose=True):
+	score_opt=None, score_epochs=20, score_file_name="goblin", test=True, verbose=True):
 	if verbose:
 		print("Building the goblin...")
 	
@@ -35,13 +46,13 @@ def train_goblin(inputs, score_targets, stat_targets=None, score_nodes=None, sco
 	if score_activations is None:
 		score_activations = ["relu"]
 	
-	# use categorical cross_entropy as default loss function
+	# use categorical cross_entropy as default loss function for scores because that is the best one for one hot targets
 	if score_loss is None:
 		score_loss = "categorical_crossentropy"
 	
 	# use adam as default optimizer
-	if score_optimizer is None:
-		score_optimizer = keras.optimizers.Adam()
+	if score_opt is None:
+		score_opt = keras.optimizers.Adam()
 	
 	# make sure both of these lists are requesting the same number of hidden layers
 	if len(score_nodes) != len(score_activations):
@@ -81,7 +92,7 @@ def train_goblin(inputs, score_targets, stat_targets=None, score_nodes=None, sco
 		print(f"Compiling the goblin...")
 
 	# compile the neural network
-	score_goblin.compile(optimizer=score_optimizer, loss=score_loss, metrics=["accuracy"])
+	score_goblin.compile(optimizer=score_opt, loss=score_loss, metrics=["accuracy"])
 
 	train_verbose = 0
 	if verbose:
@@ -90,7 +101,72 @@ def train_goblin(inputs, score_targets, stat_targets=None, score_nodes=None, sco
 		train_verbose = 2
 	
 	# train the neural network
-	score_history = score_goblin.fit(score_train_inputs, score_train_targets, batch_size=32, epochs=1, verbose=train_verbose)
+	score_history = score_goblin.fit(score_train_inputs, score_train_targets, batch_size=32, epochs=score_epochs, verbose=train_verbose)
+
+	if verbose:
+		print("Goblin trained.")
+	
+	# test accuracy
+	if test:
+		if verbose:
+			print("Calculating training set accuracy...")
+		
+		# make prediction on training set
+		score_pred = score_goblin.predict(score_train_inputs)
+		# calculate training set accuracy
+		red_score_pred = np.argmax(score_pred[:score_pred.shape[1]], axis=-1)
+		blu_score_pred = np.argmax(score_pred[score_pred.shape[1]:], axis=-1)
+		red_score_real = np.argmax(score_train_targets[:score_train_targets.shape[1]], axis=-1)
+		blu_score_real = np.argmax(score_train_targets[score_train_targets.shape[1]:], axis=-1)
+		train_acc = sum(np.hstack((red_score_pred, blu_score_pred)) == np.hstack((red_score_real, blu_score_real))) /\
+			score_targets.shape[0] * 100
+		
+		if verbose:
+			print(f"Training set accuracy is {train_acc}%")
+		
+		if verbose:
+			print("Calculating test set accuracy...")
+		
+		# make prediction on test set
+		score_pred = score_goblin.predict(score_test_inputs)
+		# calculate test set accuracy
+		red_score_pred = np.argmax(score_pred[:score_pred.shape[1]], axis=-1)
+		blu_score_pred = np.argmax(score_pred[score_pred.shape[1]:], axis=-1)
+		red_score_real = np.argmax(score_test_targets[:score_test_targets.shape[1]], axis=-1)
+		blu_score_real = np.argmax(score_test_targets[score_test_targets.shape[1]:], axis=-1)
+		test_acc = sum(np.hstack((red_score_pred, blu_score_pred)) == np.hstack((red_score_real, blu_score_real))) /\
+			score_targets.shape[0] * 100
+		
+		if verbose:
+			print(f"Test set accuracy is {test_acc}%")
+
+	score_file_path = f"{nn_path}/{score_file_name}{nn_file_ext}"
+	if verbose:
+		print(f"Storing the goblin into {score_file_path}...")
+	
+	# save neural network structure to json file
+	json_score_goblin = score_goblin.to_json()
+	with open(score_file_path, "w") as json_file:
+		json_file.write(json_score_goblin)
+	
+	score_weights_path = f"{nn_path}/{score_file_name}_weights{weight_file_ext}"
+	if verbose:
+		print(f"Storing goblin weights into {score_weights_path}...")
+	
+	# save weights to h5 file
+	score_goblin.save_weights(score_weights_path)
+
+	# if the accuracy was tested, save that
+	if test:
+		score_acc_path = f"{nn_path}/{score_file_name}_acc{acc_file_ext}"
+		if verbose:
+			print(f"Storing goblin accuracy stats into {score_acc_path}")
+		
+		with open(score_acc_path, "w") as acc_file:
+			acc_file.write(f"Training Accuracy: {train_acc}%\n")
+			acc_file.write(f"Test Accuracy: {test_acc}%\n")
+	
+	return score_goblin
 
 # loads neural network(s) from json file
 def load_goblin(load_stats=False, verbose=True):
@@ -104,6 +180,8 @@ if __name__ == "__main__":
 	verbose = True
 	new_data = False
 	pages = 0
+	epochs = 20
+	score_nn_file_name = "goblin"
 
 	# loop through each argument
 	i = 1
@@ -112,22 +190,46 @@ if __name__ == "__main__":
 		if sys.argv[i] == "-s" or sys.argv[i] == "--silent":
 			verbose = False
 		# argument to fetch new set of data
-		elif sys.argv[i] == "-n" or sys.argv[i] == "--new-data":
+		elif sys.argv[i] == "-nd" or sys.argv[i] == "--new-data":
 			new_data = True
 			i += 1
 			# make sure there is a follow up argument that is a positive integer
 			# this follow up arg tells how many pages of log profiles to read from each inputted player
 			if i >= len(sys.argv):
-				print(f"ERROR: {sys.arv[i-1]} requires a positive integer after it.")
+				print(f"ERROR: {sys.argv[i-1]} requires a positive integer after it.")
 				exit(2)
 			try:
 				pages = int(sys.argv[i])
 			except ValueError:
-				print(f"ERROR: {sys.arv[i-1]} requires a positive integer after it.")
+				print(f"ERROR: {sys.argv[i-1]} requires a positive integer after it.")
 				exit(2)
 			if pages < 1:
-				print(f"ERROR: {sys.arv[i-1]} requires a positive integer after it.")
+				print(f"ERROR: {sys.argv[i-1]} requires a positive integer after it.")
 				exit(2)
+		elif sys.argv[i] == "-e" or sys.argv[i] == "--epochs":
+			i += 1
+			# make sure there is a follow up argument that is a positive integer
+			# this follow up arg tells how many epoch cycles to go through for training the goblin
+			if i >= len(sys.argv):
+				print(f"ERROR: {sys.argv[i-1]} requires a positive integer after it.")
+				exit(2)
+			try:
+				epochs = int(sys.argv[i])
+			except ValueError:
+				print(f"ERROR: {sys.argv[i-1]} requires a positive integer after it.")
+				exit(2)
+			if epochs < 1:
+				print(f"ERROR: {sys.argv[i-1]} requires a positive integer after it.")
+				exit(2)
+		elif sys.argv[i] == "--name":
+			i += 1
+			# make sure there is a follow up argument
+			# this follow up arg tells how many epoch cycles to go through for training the goblin
+			if i >= len(sys.argv):
+				print(f"ERROR: {sys.argv[i-1]} requires a follow up argument.")
+				exit(2)
+
+			score_nn_file_name = sys.argv[i]
 		# if the argument isn't recognized
 		else:
 			print(f"ERROR: Argument {i} not recognized: {sys.argv[i]}")
@@ -141,10 +243,11 @@ if __name__ == "__main__":
 	if new_data:
 
 		# get a fresh set of logs and data
-		log_ids = get_logs(pages, verbose=verbose)
+		log_ids, sid3s = get_logs(pages, verbose=verbose)
 		if verbose:
 			print(delimiter)
-		num_logs, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats = fetch_log_data(log_ids, verbose=verbose)
+		num_logs, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats = fetch_log_data(\
+			log_ids, sid3s, verbose=verbose)
 		if verbose:
 			print(delimiter)
 		inputs, targets, stats = prepare_log_data(\
@@ -166,4 +269,5 @@ if __name__ == "__main__":
 	if verbose:
 		print(delimiter)
 	
-	train_goblin(inputs, targets, verbose=verbose)
+	train_goblin(inputs, targets, score_epochs=epochs, score_file_name=score_nn_file_name, verbose=verbose,\
+		score_opt=keras.optimizers.Adam())

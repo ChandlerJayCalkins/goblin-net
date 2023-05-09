@@ -34,21 +34,21 @@ if __name__ == "__main__":
 		if sys.argv[i] == "-s" or sys.argv[i] == "--silent":
 			verbose = False
 		# argument to fetch new set of data
-		elif sys.argv[i] == "-n" or sys.argv[i] == "--new-data":
+		elif sys.argv[i] == "-nd" or sys.argv[i] == "--new-data":
 			new_data = True
 			i += 1
 			# make sure there is a follow up argument that is a positive integer
 			# this follow up arg tells how many pages of log profiles to read from each inputted player
 			if i >= len(sys.argv):
-				print(f"ERROR: {sys.arv[i-1]} requires a positive integer after it.")
+				print(f"ERROR: {sys.argv[i-1]} requires a positive integer after it.")
 				exit(2)
 			try:
 				pages = int(sys.argv[i])
 			except ValueError:
-				print(f"ERROR: {sys.arv[i-1]} requires a positive integer after it.")
+				print(f"ERROR: {sys.argv[i-1]} requires a positive integer after it.")
 				exit(2)
 			if pages < 1:
-				print(f"ERROR: {sys.arv[i-1]} requires a positive integer after it.")
+				print(f"ERROR: {sys.argv[i-1]} requires a positive integer after it.")
 				exit(2)
 		# argument to train a new neural network
 		elif sys.argv[i] == "-t" or sys.argv[i] == "--train":
@@ -66,10 +66,11 @@ if __name__ == "__main__":
 	if new_data:
 
 		# get a fresh set of logs and data
-		log_ids = get_logs(pages, verbose=verbose)
+		log_ids, sid3s = get_logs(pages, verbose=verbose)
 		if verbose:
 			print(delimiter)
-		num_logs, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats = fetch_log_data(log_ids, verbose=verbose)
+		num_logs, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats = fetch_log_data(\
+			log_ids, sid3s, verbose=verbose)
 		if verbose:
 			print(delimiter)
 		inputs, targets, stats = prepare_log_data(\

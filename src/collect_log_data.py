@@ -28,7 +28,7 @@ import ssl
 import json
 # used for handling date data from match logs
 from datetime import datetime
-# used for making sure the data directory exists
+# used for making sure files and folders exist
 import os
 # used for changing the time zone of the retrieved match times
 import pytz
@@ -49,6 +49,8 @@ file_ext = ".csv"
 profile_data_file = "profiles"
 # name of data file containing log ids of logs to extract data from
 log_data_file = "logs"
+# name of data file containing steamid3s of players inputted from profiles file
+sid3s_data_file = "SteamID3s"
 # name of data file containing log ids of valid logs that will be used
 used_logs_file = "used_logs"
 
@@ -71,6 +73,8 @@ outputs_data_file = "outputs"
 profile_data_path = f"{data_path}/{profile_data_file}{file_ext}"
 # path to log data file
 log_data_path = f"{data_path}/{log_data_file}{file_ext}"
+# path to steamid3 data file
+sid3_data_path = f"{data_path}/{sid3s_data_file}{file_ext}"
 # path to used logs data file
 used_logs_path = f"{data_path}/{used_logs_file}{file_ext}"
 
@@ -98,8 +102,18 @@ profile_log_url = "profile/"
 # since logs.tf's ssl certificate is expired apparently lol
 unverified_context = ssl._create_unverified_context()
 
+# used for converting steam community id to steam id 3
+# found from https://gist.github.com/bcahue/4eae86ae1d10364bb66d
+def commid_to_steamid3(commid):
+	# used for converting steam ids
+	steamid64ident = 76561197960265728
+	# calculate steamid3 value
+	steamidacct = int(commid) - steamid64ident
+    # return full steamid3
+	return "[U:1:" + str(steamidacct) + "]"
+
 # reads from a file of steam profiles and returns the log ids of the last few pages of each of their logs
-# returns an array of the log ids
+# returns an array of the log ids and steamid3s of the players it read
 def get_logs(pages, verbose=True):
 	if verbose:
 		print("Getting logs from list of players...")
@@ -147,6 +161,8 @@ def get_logs(pages, verbose=True):
 
 	# array of all of the log ids
 	log_ids = np.array([], dtype=str)
+	# array of all steamid3s
+	sid3s = np.array([], dtype=str)
 	# counter to keep track of how many profiles have been read
 	counter = 0
 
@@ -183,6 +199,9 @@ def get_logs(pages, verbose=True):
 		else:
 			print(f"\nERROR: Could not identify steam profile format from {profile}")
 			exit(1)
+
+		# add steamid3 to list of steamid3s
+		sid3s = np.append(sid3s, commid_to_steamid3(steam_id))
 
 		# collect list of log ids from last few pages of player's logs.tf profile
 		for page in range(1, pages + 1):
@@ -246,8 +265,12 @@ def get_logs(pages, verbose=True):
 	if verbose:
 		print(f"\nStored list of {len(log_ids)} log ids to {log_data_path}")
 	
-	# return the log ids
-	return log_ids
+	# output the steamid3s to a csv file
+	df_sid3s = pd.DataFrame(sid3s)
+	df_sid3s.to_csv(sid3_data_path, header=["SteamID3s"], index=False)
+	
+	# return the log ids and the steamid3s
+	return log_ids, sid3s
 
 # returns an array of log ids that were retrieved from get_logs()
 def read_log_ids():
@@ -261,9 +284,21 @@ def read_log_ids():
 	# read the log id file and return an array of the log ids
 	return np.array(pd.read_csv(log_data_path), dtype=str).flatten()
 
+# returns an array of steamid3s that were retrieved from get_logs()
+def read_sid3s():
+	# if there isn't a folder for the data
+	if not os.path.isdir(data_path):
+		raise FileNotFoundError("Missing data folder.")
+	# if the steamid3s are missing
+	if not os.path.isfile(sid3_data_path):
+		raise FileNotFoundError("Missing SteamID3 data file")
+	
+	# read the steamid3 file and return an array of the steamid3s
+	return np.array(pd.read_csv(sid3_data_path), dtype=str).flatten()
+
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
 # returns the number of valid logs that it stored data from, along with numpy arrays the data that was collected
-def fetch_log_data(log_ids, verbose=True):
+def fetch_log_data(log_ids, sid3s, verbose=True):
 	if verbose:
 		print("Extracting log data and weeding out invalid logs...")
 
@@ -298,16 +333,16 @@ def fetch_log_data(log_ids, verbose=True):
 		# request data from json file of log
 		response = None
 		response_success = False
+		data = None
 		# in case requesting http response fails on first try, loop until request succeeds
 		while not response_success:
 			try:
 				response = urlopen(log_json_url, context=unverified_context)
+				# turn data from json file into dictionary
+				data = json.loads(response.read())
 				response_success = True
 			except:
 				print(f"HTTP Error from log id {log_id}, trying again...")
-		
-		# turn data from json file into dictionary
-		data = json.loads(response.read())
 
 		# Check that all necessary dictionary keys exist
 
@@ -452,6 +487,13 @@ def fetch_log_data(log_ids, verbose=True):
 
 		# loop through each player and put them in the correct list for their team and class
 		for sid3 in player_data:
+			# make sure this is a player that was inputted to be trained on by the neural net
+			if sid3 not in sid3s:
+				if verbose:
+					print(f"Player {sid3} in log {log_id} not in list of players to train on")
+				error = True
+				break
+
 			player = player_data[sid3]
 			# keys names for each statistic
 			key_team = "team"
@@ -951,10 +993,11 @@ if __name__ == "__main__":
 	delimiter = "-" * 50
 
 	# get a fresh set of logs and data
-	log_ids = get_logs(pages, verbose=verbose)
+	log_ids, sid3s = get_logs(pages, verbose=verbose)
 	if verbose:
 		print(delimiter)
-	num_logs, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats = fetch_log_data(log_ids, verbose=verbose)
+	num_logs, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats = fetch_log_data(\
+		log_ids, sid3s, verbose=verbose)
 	if verbose:
 		print(delimiter)
 	inputs, targets, stats = prepare_log_data(\

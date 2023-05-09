@@ -6,6 +6,8 @@ data/*
 profiles.csv
 # Ignores .env containing Steam API Key
 .env
+# Ignores neural network storage
+nn/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
