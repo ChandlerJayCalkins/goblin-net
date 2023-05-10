@@ -39,8 +39,8 @@ def train_goblin(inputs, score_targets, stat_targets=None, score_nodes=None, sco
 	
 	# default number of hidden layers for the score predictor to 1 with the average of the input and target nodes
 	if score_nodes is None:
-		#score_nodes = [int((2/3) * inputs.shape[1]) + score_targets.shape[1]]
-		score_nodes = [int((inputs.shape[1] + score_targets.shape[1]) / 2)]
+		score_nodes = [int((2/3) * inputs.shape[1]) + score_targets.shape[1]]
+		#score_nodes = [int((inputs.shape[1] + score_targets.shape[1]) / 2)]
 	
 	# use relu on single hidden default layer
 	if score_activations is None:
@@ -273,5 +273,9 @@ if __name__ == "__main__":
 	if verbose:
 		print(delimiter)
 	
-	train_goblin(inputs, targets, score_epochs=epochs, score_file_name=score_nn_file_name, verbose=verbose,\
-		score_opt=keras.optimizers.Adam(learning_rate=0.0001))
+	hidden_nodes = int((2/3) * inputs.shape[1]) + targets.shape[1]
+	hidden_nodes2 = int(hidden_nodes / 3)
+	hidden_nodes1 = hidden_nodes2 * 2
+	train_goblin(inputs, targets, score_epochs=epochs, score_nodes=[hidden_nodes1, hidden_nodes2],\
+		score_activations=["relu", "relu"], score_file_name=score_nn_file_name, verbose=verbose,\
+		score_opt=keras.optimizers.Adam(learning_rate=0.00001))
