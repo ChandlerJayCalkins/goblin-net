@@ -111,32 +111,20 @@ def train_goblin(inputs, score_targets, stat_targets=None, score_nodes=None, sco
 		if verbose:
 			print("Calculating training set accuracy...")
 		
-		def c_arr_cmp(a, b):
-			result = np.array([], dtype=int)
-			for i, j in zip(a, b):
-				if i < j:
-					result = np.append(result, -1)
-				elif i > j:
-					result = np.append(result, 1)
-				else:
-					result = np.append(result, 0)
-			return result
-		
 		# make prediction on training set
 		score_pred = score_goblin.predict(score_train_inputs)
 		# calculate training set accuracy
-		red_score_pred = np.argmax(score_pred[:score_pred.shape[1]], axis=-1)
-		blu_score_pred = np.argmax(score_pred[score_pred.shape[1]:], axis=-1)
-		red_score_real = np.argmax(score_train_targets[:score_train_targets.shape[1]], axis=-1)
-		blu_score_real = np.argmax(score_train_targets[score_train_targets.shape[1]:], axis=-1)
+		score_pred = np.hsplit(score_pred, 2)
+		red_score_pred = np.argmax(score_pred[0], axis=-1)
+		blu_score_pred = np.argmax(score_pred[1], axis=-1)
+		real_score = np.hsplit(score_train_targets, 2)
+		red_score_real = np.argmax(real_score[0], axis=-1)
+		blu_score_real = np.argmax(real_score[1], axis=-1)
 		train_score_acc = sum(np.hstack((red_score_pred, blu_score_pred)) == np.hstack((red_score_real, blu_score_real))) /\
-			score_targets.shape[0] * 100
-		train_win_acc = sum(c_arr_cmp(red_score_pred, blu_score_pred) == c_arr_cmp(red_score_real, blu_score_real)) /\
-			score_targets.shape[0]
+			score_train_targets.shape[0] * 100
 		
 		if verbose:
 			print(f"Training set accuracy with scores is {train_score_acc}%")
-			print(f"Training set accuracy with winner is {train_win_acc}%")
 		
 		if verbose:
 			print("Calculating test set accuracy...")
@@ -144,18 +132,17 @@ def train_goblin(inputs, score_targets, stat_targets=None, score_nodes=None, sco
 		# make prediction on test set
 		score_pred = score_goblin.predict(score_test_inputs)
 		# calculate test set accuracy
-		red_score_pred = np.argmax(score_pred[:score_pred.shape[1]], axis=-1)
-		blu_score_pred = np.argmax(score_pred[score_pred.shape[1]:], axis=-1)
-		red_score_real = np.argmax(score_test_targets[:score_test_targets.shape[1]], axis=-1)
-		blu_score_real = np.argmax(score_test_targets[score_test_targets.shape[1]:], axis=-1)
+		score_pred = np.hsplit(score_pred, 2)
+		red_score_pred = np.argmax(score_pred[0], axis=-1)
+		blu_score_pred = np.argmax(score_pred[1], axis=-1)
+		real_score = np.hsplit(score_test_targets, 2)
+		red_score_real = np.argmax(real_score[0], axis=-1)
+		blu_score_real = np.argmax(real_score[1], axis=-1)
 		test_score_acc = sum(np.hstack((red_score_pred, blu_score_pred)) == np.hstack((red_score_real, blu_score_real))) /\
-			score_targets.shape[0] * 100
-		test_win_acc = sum(c_arr_cmp(red_score_pred, blu_score_pred) == c_arr_cmp(red_score_real, blu_score_real)) /\
-			score_targets.shape[0]
+			score_test_targets.shape[0] * 100
 		
 		if verbose:
 			print(f"Test set accuracy with scores is {test_score_acc}%")
-			print(f"Test set accuracy with winner is %{test_win_acc}")
 
 	score_file_path = f"{nn_path}/{score_file_name}{nn_file_ext}"
 	if verbose:
@@ -287,4 +274,4 @@ if __name__ == "__main__":
 		print(delimiter)
 	
 	train_goblin(inputs, targets, score_epochs=epochs, score_file_name=score_nn_file_name, verbose=verbose,\
-		score_opt=keras.optimizers.Adam())
+		score_opt=keras.optimizers.Adam(learning_rate=0.0001))
