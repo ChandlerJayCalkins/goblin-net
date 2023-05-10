@@ -278,4 +278,4 @@ if __name__ == "__main__":
 	hidden_nodes1 = hidden_nodes2 * 2
 	train_goblin(inputs, targets, score_epochs=epochs, score_nodes=[hidden_nodes1, hidden_nodes2],\
 		score_activations=["relu", "relu"], score_file_name=score_nn_file_name, verbose=verbose,\
-		score_opt=keras.optimizers.Adam(learning_rate=0.00001))
+		score_opt=keras.optimizers.SGD(learning_rate=0.00001))
