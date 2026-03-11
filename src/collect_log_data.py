@@ -867,6 +867,7 @@ def prepare_log_data(players=None, gamemodes=None, maps=None, dates=None, weekda
 	if verbose:
 		print("Preparing data to be fed into the goblin...")
 
+	# TODO: replace one-hot encoding into linear encoding. turn strings into numbers
 	# one hot encode players
 	classes = np.unique(players)
 	players_onehot = np.searchsorted(classes, players)
