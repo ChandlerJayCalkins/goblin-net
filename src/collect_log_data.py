@@ -15,7 +15,7 @@
 
 # used for getting steam ids from steam profile urls
 # pip install python-steam-api
-from steam import Steam
+from steam_web_api import Steam
 from decouple import config
 # used for reading html pages
 # pip install beautifulsoup4 / conda install beautifulsoup4
@@ -298,7 +298,7 @@ def read_sid3s():
 
 # collects data from log files of list of log ids and puts the data in csv files in the data folder
 # returns the number of valid logs that it stored data from, along with numpy arrays the data that was collected
-def fetch_log_data(log_ids, sid3s, verbose=True):
+def fetch_log_data(log_ids, sid3s, include_randos=True, verbose=True):
 	if verbose:
 		print("Extracting log data and weeding out invalid logs...")
 
@@ -487,8 +487,9 @@ def fetch_log_data(log_ids, sid3s, verbose=True):
 
 		# loop through each player and put them in the correct list for their team and class
 		for sid3 in player_data:
+			# if include_randos argument was false
 			# make sure this is a player that was inputted to be trained on by the neural net
-			if sid3 not in sid3s:
+			if not include_randos and sid3 not in sid3s:
 				if verbose:
 					print(f"Player {sid3} in log {log_id} not in list of players to train on")
 				error = True
@@ -965,8 +966,8 @@ if __name__ == "__main__":
 	import sys
 
 	# first argument must be a number telling how many pages to read from each player's log profile
-	if len(sys.argv) < 2:
-		print("ERROR: No arguments. Must give number of pages to read from each player's log profile.")
+	if len(sys.argv) < 3:
+		print("ERROR: No arguments. Must give number of pages to read from each player's log profile and whether or not to include players not found in profiles.csv.")
 		exit(2)
 	
 	# make sure the argument is an integer
@@ -981,13 +982,22 @@ if __name__ == "__main__":
 		print("ERROR: First argument must be a positive integer.")
 		exit(2)
 	
+	match sys.argv[2]:
+		case "-i" | "--include":
+			include_randos = True
+		case "-s" | "--skip":
+			include_randos = False
+		case _:
+			print("ERROR: Second argument must be either '-i', '--include' (for include players not in profiles.csv), '-s', or '--skip' (for skip players not in profiles.csv).")
+			exit(2)
+
 	verbose = True
 	# user can provide argument to not print any messages during execution
-	if len(sys.argv) > 2:
-		if sys.argv[2] == "-s" or sys.argv[2] == "--silent":
+	if len(sys.argv) > 3:
+		if sys.argv[3] == "-s" or sys.argv[3] == "--silent":
 			verbose = False
 		else:
-			print("Second argument not recognized.")
+			print("ERROR: Third argument not recognized.")
 			exit(2)
 
 	delimiter = "-" * 50
@@ -997,7 +1007,7 @@ if __name__ == "__main__":
 	if verbose:
 		print(delimiter)
 	num_logs, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats = fetch_log_data(\
-		log_ids, sid3s, verbose=verbose)
+		log_ids, sid3s, include_randos=include_randos, verbose=verbose)
 	if verbose:
 		print(delimiter)
 	inputs, targets, stats = prepare_log_data(\

@@ -8,8 +8,9 @@ Neural Network(s) that predicts the outcomes of competitive Team Fortress 2 Sixe
 - This program collects the logs from logs.tf of the last given number of pages of each of the players inputted in the `profiles.csv` file
 - It only collects valid sixes logs and doesn't include logs that contain players that weren't inputted in the `profiles.csv` file
 - Arguments
-	- The first argument must be a positive integer that tells how many pages of logs to collect from each player in the `profiles.csv` file
-	- There can be a second argument, `-s` or `--slient`, to make it so the program doesn't print any outputs to commandline.
+	- The first argument must be a positive integer that tells how many pages of logs to collect from each player in the `profiles.csv` file.
+	- The second argument must be either `-i`, `--include`, `-s`, or `--skip`. `-i` and `--include` make it so logs with players not in the `profiles.csv` file still get include. `-s` and `--skip` skips over logs with players not in the `profiles.csv` file.
+	- There can be a third argument, `-s` or `--slient`, to make it so the program doesn't print any outputs to commandline.
 
 ### train_neural_net.py
 
@@ -66,5 +67,7 @@ Neural Network(s) that predicts the outcomes of competitive Team Fortress 2 Sixe
 	- `pip install beautifulsoup4`
 - Steam API
 	- `pip install python-steam-api`
+- Python Decouple
+	- `pip install python-decouple`
 - Tensorflow
 	- `pip install tensorflow`
