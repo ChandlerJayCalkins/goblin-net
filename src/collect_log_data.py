@@ -445,7 +445,14 @@ def fetch_log_data(log_ids, sid3s, include_randos=True, verbose=True):
 		gamemode = np.array([data["info"]["map"][:data["info"]["map"].index("_")]])
 
 		# get map name
-		map_name = np.array(data["info"]["map"], ndmin=1)
+		map_name_str = data["info"]["map"]
+		# remove map version from name if there is one
+		# (any characters after a second underscore, including the underscore)
+		if map_name_str.count("_") > 1:
+			first_underscore_index = map_name_str.index("_")
+			second_underscore_index = map_name_str[first_underscore_index + 1:].index("_") + first_underscore_index + 1
+			map_name_str = map_name_str[:second_underscore_index]
+		map_name = np.array(map_name_str, ndmin=1)
 
 		# get player data
 		player_data = data["players"]
@@ -821,6 +828,37 @@ def fetch_log_data(log_ids, sid3s, include_randos=True, verbose=True):
 	# return the number of valid logs that it stored data from, along with all of the data collected
 	return used_logs.size, used_logs, players, gamemodes, maps, dates, weekdays, scores, stats
 
+# converts an np array from any value type / range into an array of scalar values between 0 and 1
+def to_scalars(values):
+	classes = np.unique(values)
+	indexed_values = np.searchsorted(classes, values) + 1
+	return get_scaled(indexed_values)
+
+# returns a scaled version of an np array of numbers down to between 0 and 1 (assuming the values are nonnegative)
+def get_scaled(values):
+	max_value = np.max(values)
+	return values / max_value
+
+# converts a string of the day of the week into a scalar value between 0 and 1
+def weekday_to_scalar(weekday):
+	match weekday.lower():
+		case "sunday":
+			return 1 / 7
+		case "monday":
+			return 2 / 7
+		case "tuesday":
+			return 3 / 7
+		case "wednesday":
+			return 4 / 7
+		case "thursday":
+			return 5 / 7
+		case "friday":
+			return 6 / 7
+		case "saturday":
+			return 1
+		case _:
+			raise ValueError("Invalid day of the week")
+
 # prepares data to be fed into the goblin
 # reads data from csv files if data that was passed is none
 def prepare_log_data(players=None, gamemodes=None, maps=None, dates=None, weekdays=None, scores=None, stats=None, verbose=True):
@@ -867,49 +905,56 @@ def prepare_log_data(players=None, gamemodes=None, maps=None, dates=None, weekda
 	if verbose:
 		print("Preparing data to be fed into the goblin...")
 
-	# TODO: replace one-hot encoding into linear encoding. turn strings into numbers
-	# one hot encode players
-	classes = np.unique(players)
-	players_onehot = np.searchsorted(classes, players)
-	players_onehot = to_categorical(players_onehot)
-	players_onehot = players_onehot.reshape(players.shape[0], players_onehot.shape[1] * players_onehot.shape[2])
+	# index players from steam IDs to normalized numbers
+	players_indexed = to_scalars(players)
 
-	# one hot encode gamemodes
+	# index gamemodes from strings to normalized numbers
+
+	# get unique gamemodes
 	classes = np.unique(gamemodes)
 	# make sure both koth and control points are encoded in
 	if "koth" not in classes:
 		classes = np.append(classes, "koth")
 	if "cp" not in classes:
 		classes = np.append(classes, "cp")
-	classes = np.reshape(classes, (classes.size, 1))
-	oe = OrdinalEncoder()
-	oe.fit(classes)
-	gamemodes_onehot = np.eye(classes.size)[oe.transform(gamemodes).flatten().astype(int)]
+	gamemodes_indexed = np.searchsorted(classes, gamemodes.flatten()) + 1
+	gamemodes_indexed = get_scaled(gamemodes_indexed)
+	# reshape array so it can be stacked horizontally with players_indexed
+	gamemodes_indexed = np.reshape(gamemodes_indexed, (gamemodes_indexed.size, 1))
 
-	# one hot encode maps
-	classes = np.unique(maps)
-	maps_onehot = np.searchsorted(classes, maps)
-	maps_onehot = to_categorical(maps_onehot)
+	# index maps from strings to normalized numbers
+	maps_indexed = to_scalars(maps)
+	# reshape array so it can be stacked horizontally with players_indexed
+	maps_indexed = np.reshape(maps_indexed, (maps_indexed.size, 1))
 
-	# one hot encode months
-	months = dates[:, 1]
-	months_onehot = np.delete(np.eye(13)[months], 0, 1)
+	# get years as normalized numbers
+	years = dates[:, 0] - 2006 # year tf2 was released - 1
+	years = get_scaled(years)
+	# reshape array so it can be stacked horizontally with players_indexed
+	years = np.reshape(years, (years.size, 1))
 
-	# one hot encode days
-	days = dates[:, 2]
-	days_onehot = np.delete(np.eye(32)[days], 0, 1)
+	# get months as normalized numbers
+	months = dates[:, 1] / 12
+	# reshape array so it can be stacked horizontally with players_indexed
+	months = np.reshape(months, (months.size, 1))
 
-	# one hot encode weekdays
-	oe.fit([["Sunday"], ["Monday"], ["Tuesday"], ["Wednesday"], ["Thursday"], ["Friday"], ["Saturday"]])
-	weekdays_onehot = np.delete(np.eye(8)[oe.transform(weekdays).flatten().astype(int)], 7, 1)
+	# get days of the month as normalized numbers
+	days = dates[:, 2] / 31
+	# reshape array so it can be stacked horizontally with players_indexed
+	days = np.reshape(days, (days.size, 1))
+
+	# index weekdays from strings to normalized numbers
+	weekdays_indexed = np.array([weekday_to_scalar(weekday) for weekday in weekdays.flatten()])
+	# reshape array so it can be stacked horizontally with players_indexed
+	weekdays_indexed = np.reshape(weekdays_indexed, (weekdays_indexed.size, 1))
 
 	# one hot encode team scores
 	score_cap = 6
 	scores_onehot = np.eye(score_cap)[scores].reshape(scores.shape[0], scores.shape[1] * score_cap)
 
 	# use np.hstack() to horizontally combine the input arrays together
-	inputs = np.hstack((players_onehot, gamemodes_onehot, maps_onehot, dates.astype(float), months_onehot,\
-		days_onehot, weekdays_onehot))
+	inputs = np.hstack((players_indexed, gamemodes_indexed, maps_indexed, years, months, days,\
+		weekdays_indexed))
 	
 	if verbose:
 		print("Data prepared for goblin feeding. Storing prepared data into csv files...")
