@@ -36,9 +36,6 @@ import pytz
 import numpy as np
 # used for outputting data to a csv file
 import pandas as pd
-# used for one hot encoding data
-from keras.utils import to_categorical
-from sklearn.preprocessing import OrdinalEncoder
 
 # name of data folder
 data_path = "../data"
