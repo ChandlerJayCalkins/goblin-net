@@ -66,8 +66,8 @@ scores_data_file = "scores"
 stats_data_file = "stats"
 
 # names of data files that have been prepared to be fed into the goblin
-inputs_data_file = "inputs"
-outputs_data_file = "outputs"
+inputs_data_file = "raw_inputs"
+outputs_data_file = "raw_outputs"
 
 # path to steam profile data file
 profile_data_path = f"{data_path}/{profile_data_file}{file_ext}"
